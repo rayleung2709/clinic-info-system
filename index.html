@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的診所資訊系統 · Solo GP Clinic System</title>
+<style>
+:root{
+  --bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+  --primary:#2563eb;--primary-soft:#dbeafe;--danger:#e11d48;--danger-soft:#ffe4e6;
+  --success:#059669;--success-soft:#d1fae5;--warning:#d97706;--warning-soft:#fef3c7;
+  --violet:#7c3aed;--violet-soft:#ede9fe;--orange:#ea580c;--orange-soft:#ffedd5;
+  --dark:#0f172a;--shadow:0 10px 30px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+img{max-width:100%;display:block}
+.hint{font-size:12px;color:#64748b;line-height:1.45}
+
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#0f172a,#1e293b);padding:20px}
+.auth-card{background:#fff;border-radius:24px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 30px 80px rgba(15,23,42,.35)}
+.auth-card h1{margin:0 0 6px;font-size:22px;font-weight:900}
+.auth-card .sub{margin:0 0 24px;color:var(--muted);font-size:13px}
+.auth-error{font-size:13px;margin:10px 0 0;min-height:18px;color:var(--danger)}
+.auth-links{margin-top:16px;text-align:center;font-size:12px}
+.auth-links a{color:var(--primary);cursor:pointer;text-decoration:underline}
+
+.app{min-height:100vh;display:grid;grid-template-columns:280px 1fr}
+.sidebar{background:linear-gradient(180deg,#0f172a 0%, #111827 100%);color:#fff;padding:24px 18px;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto}
+.brand{display:flex;gap:14px;align-items:flex-start;margin-bottom:22px}
+.brand-logo{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#60a5fa,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 12px 30px rgba(96,165,250,.35);flex-shrink:0}
+.brand h1{font-size:19px;margin:0;font-weight:900}
+.brand p{margin:6px 0 0;color:#cbd5e1;font-size:12px;line-height:1.45}
+.nav{display:flex;flex-direction:column;gap:10px}
+.nav button{width:100%;border:none;background:rgba(255,255,255,.05);color:#e2e8f0;text-align:left;padding:14px 16px;border-radius:16px;cursor:pointer;font-weight:800;transition:.2s}
+.nav button:hover{background:rgba(255,255,255,.12)}
+.nav button.active{background:#fff;color:#0f172a}
+.sidebar-card{margin-top:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:16px}
+.sidebar-card h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#cbd5e1}
+.sidebar-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mini-stat{background:rgba(255,255,255,.09);border-radius:16px;padding:12px}
+.mini-stat .label{color:#cbd5e1;font-size:12px}
+.mini-stat .value{margin-top:6px;font-size:22px;font-weight:900}
+.sync-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:#cbd5e1}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#64748b;flex-shrink:0}
+.sync-badge.ok .sync-dot{background:#10b981}
+.sync-badge.saving .sync-dot{background:#f59e0b;animation:pulse-dot 1s infinite}
+.sync-badge.error .sync-dot{background:#ef4444}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.25}}
+
+.main{padding:24px;overflow:auto}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.topbar h2{margin:0;font-size:30px;line-height:1.08;font-weight:900}
+.topbar p{margin:8px 0 0;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:none;border-radius:16px;padding:11px 16px;cursor:pointer;font-weight:800;transition:.2s}
+.btn.default{background:#fff;color:var(--text);border:1px solid var(--line)}
+.btn.default:hover{background:#f8fafc}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.primary:hover{background:#1d4ed8}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.soft{background:var(--primary-soft);color:var(--primary)}
+.btn.success{background:var(--success-soft);color:var(--success)}
+.btn.warning{background:var(--warning-soft);color:var(--warning)}
+
+.grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:24px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.layout-2{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
+.layout-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;background:#f8fafc;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.card-head h3{margin:0;font-size:17px;font-weight:900}
+.card-head p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.card-body{padding:20px}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow)}
+.stat-card .label{color:var(--muted);font-size:14px}
+.stat-card .value{margin-top:8px;font-size:32px;font-weight:900}
+.list{display:flex;flex-direction:column;gap:12px}
+.list-item{border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.item-title{font-weight:800}
+.item-sub{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+.badge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.blue{background:#dbeafe;color:#1d4ed8}.emerald{background:#d1fae5;color:#047857}
+.violet{background:#ede9fe;color:#6d28d9}.amber{background:#fef3c7;color:#b45309}
+.rose{background:#ffe4e6;color:#be123c}.slate{background:#e2e8f0;color:#334155}
+.orange{background:#ffedd5;color:#c2410c}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.toolbar input,.toolbar select,.toolbar textarea,.field input,.field select,.field textarea{
+  width:100%;border:1px solid #cbd5e1;background:#fff;border-radius:14px;padding:11px 12px;outline:none}
+.toolbar input:focus,.toolbar select:focus,.toolbar textarea:focus,
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 4px #dbeafe}
+.toolbar .search{flex:1 1 260px}
+.toolbar .filter{width:180px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:980px}
+th,td{padding:14px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;background:#f8fafc}
+.table-actions{display:flex;gap:8px;flex-wrap:wrap}
+.icon-btn{border:none;border-radius:12px;padding:8px 10px;cursor:pointer;font-weight:800;background:#fff;border:1px solid var(--line)}
+.icon-btn:hover{background:#f8fafc}
+.icon-btn.danger{color:#be123c;background:#fff1f2;border-color:#fecdd3}
+.empty{padding:36px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px}
+
+.modal-backdrop,.drawer-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:80;display:none}
+.modal-backdrop.show,.drawer-backdrop.show{display:block}
+.modal{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(1180px, calc(100vw - 24px));max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 30px 80px rgba(15,23,42,.25);z-index:90;display:none}
+.modal.show{display:block}
+.modal-head{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;z-index:5}
+.modal-head h3{margin:0;font-size:22px;font-weight:900}
+.modal-head p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.modal-body{padding:20px}
+.modal-foot{padding:16px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.field label{display:block;margin-bottom:8px;font-size:14px;font-weight:800;color:#475569}
+.span-2{grid-column:span 2}
+.span-3{grid-column:span 3}
+.section-block{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fcfdff}
+.section-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:12px}
+
+.doc-layout{display:grid;grid-template-columns:380px 1fr;gap:20px}
+.doc-paper-wrap{background:#e2e8f0;border-radius:24px;padding:20px;overflow:auto}
+.doc-paper{width:210mm;min-height:297mm;background:#fff;margin:0 auto;box-shadow:0 12px 36px rgba(15,23,42,.16);border-radius:4px;position:relative;color:#111827;font-family:Arial,"PMingLiU","MingLiU",sans-serif}
+.doc-page{padding:18mm 16mm 18mm 16mm;min-height:297mm}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:2px solid #111827;padding-bottom:10px;margin-bottom:18px}
+.doc-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#60a5fa,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0}
+.doc-clinic h1{margin:0;font-size:24px;font-weight:900}
+.doc-clinic p{margin:6px 0 0;font-size:13px;line-height:1.45;color:#334155}
+.doc-title{text-align:center;font-size:24px;font-weight:900;margin:22px 0 18px;letter-spacing:2px}
+.doc-block{margin-top:14px;font-size:14.5px;line-height:1.9;white-space:pre-wrap}
+.doc-line{display:grid;grid-template-columns:140px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #e2e8f0;font-size:14px}
+.doc-line .k{font-weight:700;color:#334155}
+.doc-footer{margin-top:36px;display:flex;justify-content:space-between;gap:20px;align-items:flex-end}
+.doc-sign{margin-top:0;text-align:right;font-size:14px;line-height:1.5}
+.doc-rx-table{width:100%;border-collapse:collapse;margin-top:16px;min-width:unset}
+.doc-rx-table th,.doc-rx-table td{border:1px solid #cbd5e1;padding:10px 8px;font-size:14px;background:#fff}
+.doc-rx-table th{background:#f8fafc;color:#111827}
+.doc-note{font-size:13px;color:#475569;line-height:1.7}
+
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(760px,100vw);background:#fff;z-index:95;box-shadow:-20px 0 60px rgba(15,23,42,.18);transform:translateX(100%);transition:.25s ease;display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}
+.drawer-head h3{margin:0;font-size:20px;font-weight:900}
+.drawer-head p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.drawer-body{padding:20px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:14px}
+.detail .k{font-size:12px;color:var(--muted)}
+.detail .v{margin-top:6px;font-weight:800;word-break:break-word}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab-btn{border:none;padding:10px 14px;border-radius:14px;background:#e2e8f0;color:#334155;font-weight:800;cursor:pointer}
+.tab-btn.active{background:#dbeafe;color:#1d4ed8}
+.subtab{display:none}
+.subtab.active{display:block}
+
+.img-upload{border:2px dashed var(--line);border-radius:16px;padding:14px;text-align:center;cursor:pointer;position:relative;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#fff}
+.img-upload:hover{border-color:#60a5fa;background:#f0f7ff}
+.img-upload img{max-height:56px;object-fit:contain;display:none}
+.img-upload.has-img img{display:block}
+.img-upload.has-img .img-plus,.img-upload.has-img .img-label{display:none}
+.img-plus{font-size:22px;color:#cbd5e1}
+.img-label{font-size:12px;color:var(--muted);font-weight:800}
+.img-remove{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:#e11d48;color:#fff;font-weight:800;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;line-height:1}
+.img-upload.has-img .img-remove{display:flex}
+
+.toast{position:fixed;right:18px;bottom:18px;z-index:120;background:#0f172a;color:#fff;padding:14px 16px;border-radius:16px;box-shadow:0 20px 50px rgba(15,23,42,.25);display:none;max-width:460px;font-weight:700}
+.toast.show{display:block}
+
+@media print{
+  body *{visibility:hidden !important}
+  #printArea, #printArea *{visibility:visible !important}
+  #printArea{position:absolute;left:0;top:0;width:100%;background:#fff;padding:0;margin:0}
+  #printArea .doc-paper{width:210mm !important;min-height:297mm !important;margin:0 !important;box-shadow:none !important}
+}
+@media (max-width:1280px){
+  .grid-6{grid-template-columns:repeat(3,1fr)}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .layout-2,.layout-3,.doc-layout{grid-template-columns:1fr}
+}
+@media (max-width:980px){
+  .app{grid-template-columns:1fr}
+  .sidebar{border-right:none;border-bottom:1px solid rgba(255,255,255,.08)}
+  .form-grid{grid-template-columns:1fr 1fr}
+  .span-3{grid-column:span 2}
+}
+@media (max-width:640px){
+  .main{padding:16px}
+  .grid-6,.grid-4{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .span-2,.span-3{grid-column:span 1}
+  .detail-grid{grid-template-columns:1fr}
+  .topbar h2{font-size:24px}
+  .toolbar .filter{width:100%}
+  .doc-paper-wrap{padding:12px}
+  .doc-paper{width:100%;min-height:auto}
+  .doc-page{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <h1>✚ 醫生登入</h1>
+    <p class="sub">Solo GP Clinic Information System</p>
+    <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+      <div class="field" style="margin-bottom:14px">
+        <label>Email</label>
+        <input id="loginEmail" type="email" required autocomplete="username">
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>密碼</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn primary" style="width:100%">登入</button>
+      <p class="auth-error" id="authError"></p>
+    </form>
+    <div class="auth-links"><a onclick="handleForgotPassword()">忘記密碼？</a></div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" style="display:none">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">✚</div>
+      <div>
+        <h1 id="brandClinicName">我的家庭醫務所</h1>
+        <p>Solo GP Clinic System<br>雲端同步 / Supabase</p>
+      </div>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div class="sidebar-card">
+      <h3>今日概覽</h3>
+      <div class="sidebar-grid">
+        <div class="mini-stat"><div class="label">今日預約</div><div class="value" id="miniTodayAppt">0</div></div>
+        <div class="mini-stat"><div class="label">今日收入</div><div class="value" id="miniTodayIncome">0</div></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <h3>帳戶</h3>
+      <div class="sync-badge" id="syncBadge"><span class="sync-dot"></span><span id="syncText">未同步</span></div>
+      <div style="font-size:12px;color:#94a3b8;margin:10px 0" id="loggedInEmail"></div>
+      <button class="btn default" style="width:100%;margin-bottom:8px" onclick="manualSync()">立即同步</button>
+      <button class="btn default" style="width:100%" onclick="doSignOut()">登出</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="pageTitle">主控台</h2>
+        <p id="pageSubtitle">小型 GP clinic 日常管理</p>
+      </div>
+      <div class="actions">
+        <button class="btn default" onclick="loadDemo()">載入示範資料</button>
+        <button class="btn default" onclick="document.getElementById('importInput').click()">匯入 JSON</button>
+        <button class="btn default" onclick="exportJSON()">匯出 JSON</button>
+        <button class="btn danger" onclick="resetAll()">清除全部資料</button>
+        <button class="btn primary" onclick="openCreate('appointment')">+ 快速新增</button>
+      </div>
+    </div>
+    <section id="pageContent"></section>
+  </main>
+</div>
+
+<input id="importInput" type="file" accept="application/json" hidden onchange="importJSON(event)" />
+
+<div id="modalBackdrop" class="modal-backdrop"></div>
+<div id="recordModal" class="modal">
+  <div class="modal-head">
+    <div>
+      <h3 id="modalTitle">新增資料</h3>
+      <p id="modalSubtitle">請填寫表格</p>
+    </div>
+    <button class="btn default" onclick="closeModal()">關閉</button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-foot">
+    <button class="btn default" onclick="closeModal()">取消</button>
+    <button class="btn primary" onclick="saveRecord()">儲存</button>
+  </div>
+</div>
+
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closePatientDrawer()"></div>
+<div id="patientDrawer" class="drawer">
+  <div class="drawer-head">
+    <div>
+      <h3 id="drawerTitle">病人詳細</h3>
+      <p id="drawerSubtitle">病人資料</p>
+    </div>
+    <button class="btn default" onclick="closePatientDrawer()">關閉</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="printArea" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   Solo GP Clinic Information System
+   ============================================================ */
+
+/* ---------- Supabase 設定：填返你自己嘅 Project URL / anon key ---------- */
+const SUPABASE_URL = "https://piadcbnmxixehacsmpej.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpYWRjYm5teGl4ZWhhY3NtcGVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMzc2NjcsImV4cCI6MjEwMDkxMzY2N30.PG4LTe-5_qbySh5FPJd5457yywaNUPwSAoPB6gUY7Qo";
+const CLINIC_TABLE = "clinic_records";
+
+let sb = null;
+let currentUser = null;
+let cloudSaveTimer = null;
+let suppressCloudSave = false;
+
+const STORAGE_KEY = "solo_gp_cis_v1";
+const IMG_STORAGE_KEY = "solo_gp_cis_images_v1";
+
+const pages = [
+  { key:"dashboard", label:"主控台", subtitle:"今日預約、收入、最近活動" },
+  { key:"appointments", label:"預約管理", subtitle:"預約、到達、完成、失約" },
+  { key:"patients", label:"病人資料", subtitle:"基本資料、敏感、備註、病人詳細" },
+  { key:"consultations", label:"診症記錄", subtitle:"SOAP / 處方 / quick pick" },
+  { key:"billing", label:"收費管理", subtitle:"收費、正式收據、未收餘額" },
+  { key:"medications", label:"藥物 Master", subtitle:"常用藥物及 quick pick" },
+  { key:"followups", label:"Follow-up", subtitle:"回覆、WhatsApp 跟進" },
+  { key:"documents", label:"文件列印", subtitle:"病假紙、到診證明、轉介信、處方" },
+  { key:"reports", label:"結數報表", subtitle:"每日 / 每月 / 每年" },
+  { key:"settings", label:"診所設定", subtitle:"診所、醫生、帳戶、Logo/簽名" }
+];
+
+const rxQuickPickDefault = [
+  { name:"退燒止痛", text:"Paracetamol 500mg | 每次 2 粒，每 6 小時一次，需要時服 | 16 粒" },
+  { name:"抗敏", text:"Cetirizine 10mg | 每晚 1 粒 | 7 粒" },
+  { name:"胃藥", text:"Omeprazole 20mg | 每朝 1 粒，餐前服 | 14 粒" },
+  { name:"止咳水", text:"Cough Mixture | 每次 5ml，每日 3 次，需要時服 | 1 支" },
+  { name:"抗生素", text:"Amoxicillin 500mg | 每次 1 粒，每日 3 次，共 7 日 | 21 粒" }
+];
+
+const state = {
+  page: "dashboard",
+  recordType: "",
+  editId: null,
+  form: {},
+  selectedPatientId: "",
+  drawerTab: "overview",
+  filters: {
+    appointmentSearch:"", appointmentStatus:"全部",
+    patientSearch:"",
+    consultSearch:"",
+    billSearch:"", billStatus:"全部",
+    medSearch:"",
+    followupSearch:"", followupStatus:"全部"
+  },
+  doc: defaultDocForm(),
+  data: emptyData()
+};
+
+function emptyData() {
+  return {
+    settings: {
+      clinicName: "My GP Clinic",
+      clinicNameZh: "我的家庭醫務所",
+      doctorNameEn: "Dr. XXX",
+      doctorNameZh: "XXX 醫生",
+      nurseName: "",
+      phone: "",
+      address: "",
+      doctorTitle: "家庭醫學",
+      doctorRegNo: "",
+      footerNote: "此文件由診所系統列印。",
+      receiptFooter: "多謝光臨，請保留收據。"
+    },
+    patients: [],
+    appointments: [],
+    consultations: [],
+    bills: [],
+    documents: [],
+    medications: [],
+    followups: []
+  };
+}
+
+function defaultDocForm() {
+  return {
+    type: "sick",
+    patientId: "",
+    date: todayInput(),
+    diagnosis: "",
+    sickFrom: todayInput(),
+    sickTo: todayInput(),
+    sickDays: 1,
+    attendSession: "上午",
+    referralTo: "",
+    referralBody: "",
+    rxLines: "",
+    note: ""
+  };
+}
+
+/* ---------- 工具函式 ---------- */
+function uid(prefix) { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`; }
+function todayInput() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function nowDateTimeInput() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function shiftDateTime(days, hour, minute) { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(hour, minute, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function formatDate(v) { if (!v) return "—"; const d = new Date(v); if (isNaN(d.getTime())) return "—"; return new Intl.DateTimeFormat("zh-HK", { year:"numeric", month:"2-digit", day:"2-digit" }).format(d); }
+function formatDateTime(v) { if (!v) return "—"; const d = new Date(v); if (isNaN(d.getTime())) return "—"; return new Intl.DateTimeFormat("zh-HK", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23" }).format(d); }
+function formatMoney(n) { return "HK$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:2 }); }
+function sameDate(a, b) { if (!a || !b) return false; return String(a).slice(0,10) === String(b).slice(0,10); }
+function monthKey(v){ return String(v || "").slice(0,7); }
+function yearKey(v){ return String(v || "").slice(0,4); }
+function calculateAge(dob){ if(!dob) return "—"; const birth = new Date(dob); if(isNaN(birth.getTime())) return "—"; const today = new Date(); let age = today.getFullYear() - birth.getFullYear(); const m = today.getMonth() - birth.getMonth(); if(m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--; return age; }
+function escapeHtml(str) { return String(str ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+function escapeAttr(str) { return escapeHtml(str).replaceAll("`","&#096;"); }
+function toast(message, color) { const el = document.getElementById("toast"); el.textContent = message; el.style.background = color || "#0f172a"; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2600); }
+function badgeClass(status) {
+  const map = { "普通科":"blue", "覆診":"violet", "文件":"amber", "已預約":"blue", "已到達":"emerald", "診症中":"violet", "已完成":"emerald", "取消":"slate", "失約":"amber", "已付款":"emerald", "部分付款":"amber", "未付款":"rose", "男":"blue", "女":"rose", "開放":"blue", "進行中":"violet", "完成":"emerald", "低":"slate", "普通":"blue", "高":"orange", "緊急":"rose" };
+  return map[status] || "slate";
+}
+function badge(text) { return `<span class="badge ${badgeClass(text)}">${escapeHtml(text)}</span>`; }
+
+/* ---------- 儲存層：localStorage 做快取 + Supabase 做雲端 ---------- */
+function saveStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+  queueCloudSave();
+}
+function loadLocalCache() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+function normalizeData(parsed) {
+  const base = emptyData();
+  if (!parsed) return base;
+  return {
+    settings: Object.assign({}, base.settings, parsed.settings || {}),
+    patients: parsed.patients || [],
+    appointments: parsed.appointments || [],
+    consultations: parsed.consultations || [],
+    bills: parsed.bills || [],
+    documents: parsed.documents || [],
+    medications: parsed.medications || [],
+    followups: parsed.followups || []
+  };
+}
+function setSyncStatus(kind, text){
+  const b = document.getElementById("syncBadge");
+  if(!b) return;
+  b.className = "sync-badge " + kind;
+  const t = document.getElementById("syncText");
+  if(t) t.textContent = text || (kind==="ok"?"已同步":kind==="saving"?"同步中...":"同步失敗");
+}
+function nowTimeShort(){ const d = new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function queueCloudSave(){
+  if(suppressCloudSave || !sb || !currentUser) return;
+  setSyncStatus("saving","同步中...");
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(cloudSaveNow, 900);
+}
+async function cloudSaveNow(){
+  if(!sb || !currentUser){ setSyncStatus("error","未登入"); return; }
+  try{
+    const { error } = await sb.from(CLINIC_TABLE).upsert({
+      doctor_id: currentUser.id,
+      data: state.data,
+      updated_at: new Date().toISOString()
+    });
+    if(error){ console.warn(error); setSyncStatus("error","同步失敗"); return; }
+    setSyncStatus("ok","已同步 " + nowTimeShort());
+  }catch(e){ console.warn(e); setSyncStatus("error","同步失敗"); }
+}
+async function cloudLoad(){
+  if(!sb || !currentUser) return null;
+  try{
+    const { data, error } = await sb.from(CLINIC_TABLE).select("data").eq("doctor_id", currentUser.id).maybeSingle();
+    if(error){ console.warn(error); return null; }
+    return data ? data.data : null;
+  }catch(e){ console.warn(e); return null; }
+}
+async function manualSync(){
+  await cloudSaveNow();
+  toast("已嘗試同步","#2563eb");
+}
+
+/* ---------- 登入 / 登出 ---------- */
+function initSupabaseClient(){
+  if(!SUPABASE_URL || SUPABASE_URL.indexOf("PASTE_") === 0 || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.indexOf("PASTE_") === 0){
+    return false;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return true;
+}
+async function handleLoginSubmit(e){
+  e.preventDefault();
+  const errEl = document.getElementById("authError");
+  errEl.textContent = "";
+  if(!sb){ errEl.textContent = "尚未設定 Supabase，請檢查 HTML 頂部嘅 URL / anon key。"; return; }
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ errEl.textContent = "登入失敗：" + error.message; return; }
+  currentUser = data.user;
+  await bootAfterLogin();
+}
+async function doSignOut(){
+  if(sb) await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById("appRoot").style.display = "none";
+  document.getElementById("authScreen").style.display = "flex";
+  document.getElementById("loginEmail").value = "";
+  document.getElementById("loginPassword").value = "";
+}
+async function handleForgotPassword(){
+  const email = document.getElementById("loginEmail").value.trim();
+  if(!email){ toast("請先喺 Email 欄填返你嘅電郵", "#d97706"); return; }
+  if(!sb){ toast("尚未設定 Supabase", "#e11d48"); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  if(error){ toast("發送失敗：" + error.message, "#e11d48"); return; }
+  toast("已發送重設密碼電郵，請check inbox", "#059669");
+}
+async function bootAfterLogin(){
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("appRoot").style.display = "";
+  document.getElementById("loggedInEmail").textContent = currentUser ? currentUser.email : "";
+  setSyncStatus("saving","讀取雲端資料中...");
+  const cloud = await cloudLoad();
+  suppressCloudSave = true;
+  state.data = cloud ? normalizeData(cloud) : normalizeData(loadLocalCache());
+  loadImagesFromLocal();
+  renderNav();
+  render();
+  suppressCloudSave = false;
+  if(cloud){ setSyncStatus("ok","已從雲端載入"); }
+  else { setSyncStatus("ok","本機資料（等待首次上傳）"); queueCloudSave(); }
+}
+async function startApp(){
+  const ok = initSupabaseClient();
+  document.getElementById("authScreen").style.display = "flex";
+  if(!ok){ toast("請先喺 HTML 頂部填寫 Supabase URL 同 anon key", "#d97706"); return; }
+  try{
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){
+      currentUser = data.session.user;
+      await bootAfterLogin();
+    }
+  }catch(e){ console.warn(e); }
+  sb.auth.onAuthStateChange((event) => {
+    if(event === "SIGNED_OUT"){
+      currentUser = null;
+      document.getElementById("appRoot").style.display = "none";
+      document.getElementById("authScreen").style.display = "flex";
+    }
+  });
+}
+
+/* ---------- 圖片上傳（Logo / 簽名，只存本機，唔上傳 Supabase） ---------- */
+function getStoredImages(){ try{ return JSON.parse(localStorage.getItem(IMG_STORAGE_KEY) || "{}"); }catch(e){ return {}; } }
+function saveStoredImages(obj){ try{ localStorage.setItem(IMG_STORAGE_KEY, JSON.stringify(obj)); }catch(e){ toast("圖片太大，未能儲存喺本機", "#e11d48"); } }
+function handleImageUploadEvent(key, event){
+  const file = event.target.files && event.target.files[0];
+  if(file) processImageFile(key, file);
+  event.target.value = "";
+}
+function processImageFile(key, file){
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      const maxW = 320;
+      let dataUrl = ev.target.result;
+      if(img.width > maxW){
+        const canvas = document.createElement("canvas");
+        const ratio = maxW / img.width;
+        canvas.width = maxW;
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL("image/png");
+      }
+      const stored = getStoredImages();
+      stored[key] = dataUrl;
+      saveStoredImages(stored);
+      applyImagePreview(key, dataUrl);
+      toast("圖片已上載（只存喺呢部電腦）", "#059669");
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removeStoredImage(key){
+  const stored = getStoredImages();
+  delete stored[key];
+  saveStoredImages(stored);
+  applyImagePreview(key, "");
+}
+function applyImagePreview(key, dataUrl){
+  const zone = document.getElementById("imgZone_" + key);
+  const thumb = document.getElementById("imgThumb_" + key);
+  if(zone && thumb){ thumb.src = dataUrl || ""; zone.classList.toggle("has-img", !!dataUrl); }
+}
+function loadImagesFromLocal(){
+  const stored = getStoredImages();
+  applyImagePreview("logo", stored.logo || "");
+  applyImagePreview("signature", stored.signature || "");
+}
+function getLogoDataUrl(){ return getStoredImages().logo || ""; }
+function getSignatureDataUrl(){ return getStoredImages().signature || ""; }
+
+/* ---------- 資料存取小工具 ---------- */
+function autoPatientCode() { const n = state.data.patients.length + 1; return "P" + new Date().getFullYear().toString().slice(-2) + String(n).padStart(4,"0"); }
+function autoBillCode() { return "INV-" + new Date().getFullYear().toString().slice(-2) + String(state.data.bills.length + 1).padStart(4,"0"); }
+function billStatus(amount, paid) { amount = Number(amount || 0); paid = Number(paid || 0); if (paid <= 0) return "未付款"; if (paid >= amount) return "已付款"; return "部分付款"; }
+function getPatientById(id) { return state.data.patients.find(p => p.patientId === id); }
+function patientDisplayName(p){ if(!p) return ""; return `${p.nameZh || ""}${p.nameEn ? " / " + p.nameEn : ""}`; }
+function patientLabel(id) { const p = getPatientById(id); if (!p) return id || "—"; return patientDisplayName(p); }
+function getMedicationById(id){ return state.data.medications.find(m => m.id === id); }
+function getStats() {
+  const today = todayInput();
+  const todayAppt = state.data.appointments.filter(a => sameDate(a.dateTime, today));
+  const waiting = todayAppt.filter(a => ["已到達","診症中"].includes(a.status));
+  const done = todayAppt.filter(a => a.status === "已完成");
+  const todayIncome = state.data.bills.filter(b => sameDate(b.date, today)).reduce((sum, b) => sum + Number(b.paid || 0), 0);
+  const outstanding = state.data.bills.reduce((sum, b) => sum + Math.max(0, Number(b.amount || 0) - Number(b.paid || 0)), 0);
+  return { todayAppt, waiting, done, todayIncome, outstanding };
+}
+
+function seedData() {
+  return {
+    settings: emptyData().settings,
+    patients: [
+      { id: uid("PAT"), patientId: "P260001", nameZh: "陳大文", nameEn: "CHAN Tai Man", gender: "男", dob: "1980-01-01", hkid: "A123456(7)", phone: "9123 4567", address: "沙田第一城", allergy: "Penicillin", chronic: "高血壓", alert: "G6PD 缺乏", notes: "偏好 WhatsApp 聯絡", createdAt: new Date().toISOString() },
+      { id: uid("PAT"), patientId: "P260002", nameZh: "李美玲", nameEn: "LEE Mei Ling", gender: "女", dob: "1992-06-14", hkid: "Z987654(3)", phone: "9555 2108", address: "將軍澳", allergy: "", chronic: "", alert: "", notes: "", createdAt: new Date().toISOString() },
+      { id: uid("PAT"), patientId: "P260003", nameZh: "黃志明", nameEn: "WONG Chi Ming", gender: "男", dob: "1978-03-19", hkid: "B223344(5)", phone: "9881 7722", address: "荃灣", allergy: "NSAIDs", chronic: "糖尿病", alert: "注意血糖", notes: "覆診病人", createdAt: new Date().toISOString() }
+    ],
+    appointments: [
+      { id: uid("APT"), patientId: "P260001", patientName: "陳大文 / CHAN Tai Man", dateTime: nowDateTimeInput(), type: "普通科", status: "已到達", complaint: "咳、流鼻水 3 日", notes: "需要病假紙", createdAt: new Date().toISOString() },
+      { id: uid("APT"), patientId: "P260002", patientName: "李美玲 / LEE Mei Ling", dateTime: shiftDateTime(0,15,0), type: "文件", status: "已預約", complaint: "到診證明", notes: "", createdAt: new Date().toISOString() },
+      { id: uid("APT"), patientId: "P260003", patientName: "黃志明 / WONG Chi Ming", dateTime: shiftDateTime(1,11,30), type: "覆診", status: "已預約", complaint: "糖尿病覆診", notes: "", createdAt: new Date().toISOString() }
+    ],
+    consultations: [
+      { id: uid("CON"), patientId: "P260003", patientName: "黃志明 / WONG Chi Ming", appointmentId: "", dateTime: shiftDateTime(-1,10,15), complaint: "喉嚨痛 2 日", bp: "128/78", pulse: "78", temp: "37.2", weight: "68", history: "無氣促，無胸痛", exam: "喉嚨輕微發紅", diagnosis: "上呼吸道感染", rx: "Paracetamol 500mg | 每次 2 粒，每 6 小時一次，需要時服 | 16 粒", plan: "多飲水，休息 2 日", followupDate: "", notes: "", createdAt: new Date().toISOString() }
+    ],
+    bills: [
+      { id: "INV-260001", patientId: "P260001", patientName: "陳大文 / CHAN Tai Man", date: todayInput(), item: "普通科診金", amount: 380, paid: 380, method: "現金", notes: "", status: "已付款", createdAt: new Date().toISOString() },
+      { id: "INV-260002", patientId: "P260003", patientName: "黃志明 / WONG Chi Ming", date: todayInput(), item: "覆診 + 藥物", amount: 520, paid: 200, method: "轉數快", notes: "餘額下次補", status: "部分付款", createdAt: new Date().toISOString() }
+    ],
+    documents: [],
+    medications: [
+      { id: uid("MED"), name:"Paracetamol 500mg", generic:"Paracetamol", dosage:"500mg", form:"tablet", instruction:"每次 2 粒，每 6 小時一次，需要時服", qty:"16 粒", price:40, active:true },
+      { id: uid("MED"), name:"Cetirizine 10mg", generic:"Cetirizine", dosage:"10mg", form:"tablet", instruction:"每晚 1 粒", qty:"7 粒", price:45, active:true },
+      { id: uid("MED"), name:"Omeprazole 20mg", generic:"Omeprazole", dosage:"20mg", form:"capsule", instruction:"每朝 1 粒，餐前服", qty:"14 粒", price:65, active:true },
+      { id: uid("MED"), name:"Cough Mixture", generic:"Cough Mixture", dosage:"", form:"syrup", instruction:"每次 5ml，每日 3 次，需要時服", qty:"1 支", price:55, active:true },
+      { id: uid("MED"), name:"Amoxicillin 500mg", generic:"Amoxicillin", dosage:"500mg", form:"capsule", instruction:"每次 1 粒，每日 3 次，共 7 日", qty:"21 粒", price:110, active:true }
+    ],
+    followups: [
+      { id: uid("FU"), patientId: "P260001", patientName: "陳大文 / CHAN Tai Man", dueAt: shiftDateTime(1,9,30), category: "WhatsApp", priority: "普通", status: "開放", subject: "跟進感冒症狀", note: "如未退燒，建議覆診", createdAt: new Date().toISOString() }
+    ]
+  };
+}
+
+/* ---------- Nav / Render 主流程 ---------- */
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.innerHTML = pages.map(p => `<button class="${state.page === p.key ? "active" : ""}" onclick="setPage('${p.key}')">${p.label}</button>`).join("");
+}
+function renderMiniStats() {
+  const { todayAppt, todayIncome } = getStats();
+  document.getElementById("miniTodayAppt").textContent = todayAppt.length;
+  document.getElementById("miniTodayIncome").textContent = Math.round(todayIncome);
+  const brandEl = document.getElementById("brandClinicName");
+  if(brandEl) brandEl.textContent = state.data.settings.clinicNameZh || state.data.settings.clinicName || "我的家庭醫務所";
+}
+function setPage(page) {
+  state.page = page;
+  const meta = pages.find(p => p.key === page);
+  document.getElementById("pageTitle").textContent = meta.label;
+  document.getElementById("pageSubtitle").textContent = meta.subtitle;
+  render();
+}
+function render() {
+  renderNav();
+  renderMiniStats();
+  renderPage();
+  saveStorage();
+}
+function renderPage() {
+  const root = document.getElementById("pageContent");
+  if (state.page === "dashboard") root.innerHTML = renderDashboard();
+  if (state.page === "appointments") root.innerHTML = renderAppointments();
+  if (state.page === "patients") root.innerHTML = renderPatients();
+  if (state.page === "consultations") root.innerHTML = renderConsultations();
+  if (state.page === "billing") root.innerHTML = renderBilling();
+  if (state.page === "medications") root.innerHTML = renderMedications();
+  if (state.page === "followups") root.innerHTML = renderFollowups();
+  if (state.page === "documents") root.innerHTML = renderDocuments();
+  if (state.page === "reports") root.innerHTML = renderReports();
+  if (state.page === "settings") { root.innerHTML = renderSettings(); loadImagesFromLocal(); }
+}
+
+/* ---------- Dashboard ---------- */
+function renderDashboard() {
+  const { todayAppt, waiting, done, todayIncome, outstanding } = getStats();
+  const recentConsults = state.data.consultations.slice().sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime)).slice(0,5);
+  const recentBills = state.data.bills.slice().sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,5);
+  const openFollowups = state.data.followups.filter(f => f.status !== "完成").slice().sort((a,b)=>new Date(a.dueAt)-new Date(b.dueAt)).slice(0,5);
+  return `
+    <div class="grid-6">
+      <div class="stat-card"><div class="label">今日預約</div><div class="value">${todayAppt.length}</div></div>
+      <div class="stat-card"><div class="label">等候 / 診症中</div><div class="value">${waiting.length}</div></div>
+      <div class="stat-card"><div class="label">今日完成</div><div class="value">${done.length}</div></div>
+      <div class="stat-card"><div class="label">病人總數</div><div class="value">${state.data.patients.length}</div></div>
+      <div class="stat-card"><div class="label">今日收入</div><div class="value">${formatMoney(todayIncome)}</div></div>
+      <div class="stat-card"><div class="label">未收款</div><div class="value">${formatMoney(outstanding)}</div></div>
+    </div>
+    <div class="layout-2">
+      <div class="card">
+        <div class="card-head">
+          <div><h3>今日預約</h3><p>最適合診所前台即時睇</p></div>
+          <button class="btn primary" onclick="openCreate('appointment')">+ 新增預約</button>
+        </div>
+        <div class="card-body">
+          <div class="list">
+            ${ todayAppt.length === 0 ? `<div class="empty">今日暫時無預約</div>` :
+              todayAppt.slice().sort((a,b)=>new Date(a.dateTime)-new Date(b.dateTime)).map(a => `
+                <div class="list-item">
+                  <div>
+                    <div class="item-title">${escapeHtml(a.patientName)}</div>
+                    <div class="item-sub">${formatDateTime(a.dateTime)} · ${escapeHtml(a.complaint || a.type)}</div>
+                    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${badge(a.type)} ${badge(a.status)}</div>
+                  </div>
+                  <div class="table-actions">
+                    <button class="icon-btn" onclick="openPatientDrawer('${a.patientId}')">病人</button>
+                    <button class="icon-btn" onclick="openEdit('appointment','${a.id}')">編輯</button>
+                    <button class="icon-btn" onclick="createConsultationFromAppointment('${a.id}')">開診症</button>
+                  </div>
+                </div>`).join("")
+            }
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:20px">
+        <div class="card">
+          <div class="card-head"><div><h3>最近診症</h3><p>最近 5 筆</p></div><button class="btn default" onclick="setPage('consultations')">全部診症</button></div>
+          <div class="card-body">
+            <div class="list">
+              ${ recentConsults.length === 0 ? `<div class="empty">未有診症記錄</div>` :
+                recentConsults.map(c => `
+                  <div class="list-item">
+                    <div>
+                      <div class="item-title">${escapeHtml(c.patientName)}</div>
+                      <div class="item-sub">${formatDateTime(c.dateTime)} · 診斷：${escapeHtml(c.diagnosis || "—")}</div>
+                    </div>
+                    <div class="table-actions">
+                      <button class="icon-btn" onclick="openPatientDrawer('${c.patientId}')">病人</button>
+                      <button class="icon-btn" onclick="openEdit('consultation','${c.id}')">編輯</button>
+                    </div>
+                  </div>`).join("")
+              }
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>待跟進 Follow-up</h3><p>最近 5 筆</p></div><button class="btn default" onclick="setPage('followups')">全部 Follow-up</button></div>
+          <div class="card-body">
+            <div class="list">
+              ${ openFollowups.length === 0 ? `<div class="empty">暫時無待跟進項目</div>` :
+                openFollowups.map(f => `
+                  <div class="list-item">
+                    <div>
+                      <div class="item-title">${escapeHtml(f.patientName)} · ${escapeHtml(f.subject)}</div>
+                      <div class="item-sub">${formatDateTime(f.dueAt)} · ${escapeHtml(f.category)}</div>
+                      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${badge(f.priority)} ${badge(f.status)}</div>
+                    </div>
+                    <div class="table-actions">
+                      <button class="icon-btn" onclick="openWhatsAppFollowup('${f.id}')">WhatsApp</button>
+                      <button class="icon-btn" onclick="openEdit('followup','${f.id}')">編輯</button>
+                    </div>
+                  </div>`).join("")
+              }
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>最近收費</h3><p>最近 5 筆</p></div><button class="btn default" onclick="setPage('billing')">全部收費</button></div>
+          <div class="card-body">
+            <div class="list">
+              ${ recentBills.length === 0 ? `<div class="empty">未有收費記錄</div>` :
+                recentBills.map(b => `
+                  <div class="list-item">
+                    <div>
+                      <div class="item-title">${escapeHtml(b.patientName)} · ${escapeHtml(b.item)}</div>
+                      <div class="item-sub">${formatDate(b.date)} · ${formatMoney(b.amount)} · 已收 ${formatMoney(b.paid)}</div>
+                      <div style="margin-top:8px">${badge(b.status)}</div>
+                    </div>
+                    <div class="table-actions">
+                      <button class="icon-btn" onclick="printReceipt('${b.id}')">收據</button>
+                      <button class="icon-btn" onclick="openEdit('bill','${b.id}')">編輯</button>
+                    </div>
+                  </div>`).join("")
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Appointments ---------- */
+function renderAppointments() {
+  const search = state.filters.appointmentSearch.trim().toLowerCase();
+  const items = state.data.appointments
+    .filter(a => {
+      const hitText = !search || [a.patientName, a.patientId, a.type, a.complaint, a.notes].join(" ").toLowerCase().includes(search);
+      const hitStatus = state.filters.appointmentStatus === "全部" || a.status === state.filters.appointmentStatus;
+      return hitText && hitStatus;
+    })
+    .sort((a,b)=>new Date(a.dateTime)-new Date(b.dateTime));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>預約列表</h3><p>可管理已預約、已到達、診症中、已完成</p></div>
+        <button class="btn primary" onclick="openCreate('appointment')">+ 新增預約</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋病人 / 類型 / 主訴..." value="${escapeAttr(state.filters.appointmentSearch)}" oninput="state.filters.appointmentSearch=this.value; renderPage()"></div>
+          <div class="filter">
+            <select onchange="state.filters.appointmentStatus=this.value; renderPage()">
+              ${["全部","已預約","已到達","診症中","已完成","取消","失約"].map(v => `<option ${state.filters.appointmentStatus===v?"selected":""}>${v}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日期時間</th><th>病人</th><th>類型</th><th>狀態</th><th>主訴</th><th>備註</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="7"><div class="empty">未有預約記錄</div></td></tr>` :
+                items.map(a => `
+                  <tr>
+                    <td>${formatDateTime(a.dateTime)}</td>
+                    <td><strong>${escapeHtml(a.patientName)}</strong><br><span style="color:#64748b">${escapeHtml(a.patientId)}</span></td>
+                    <td>${badge(a.type)}</td>
+                    <td>${badge(a.status)}</td>
+                    <td>${escapeHtml(a.complaint || "—")}</td>
+                    <td>${escapeHtml(a.notes || "—")}</td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="openPatientDrawer('${a.patientId}')">病人</button>
+                        <button class="icon-btn" onclick="openEdit('appointment','${a.id}')">編輯</button>
+                        <button class="icon-btn" onclick="createConsultationFromAppointment('${a.id}')">開診症</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('appointment','${a.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Patients ---------- */
+function renderPatients() {
+  const search = state.filters.patientSearch.trim().toLowerCase();
+  const items = state.data.patients
+    .filter(p => !search || [p.patientId,p.nameZh,p.nameEn,p.phone,p.hkid,p.address,p.allergy,p.alert,p.chronic].join(" ").toLowerCase().includes(search))
+    .sort((a,b)=>(a.nameZh || "").localeCompare(b.nameZh || ""));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>病人資料</h3><p>基本資料、藥物敏感、慢性病、提醒</p></div>
+        <button class="btn primary" onclick="openCreate('patient')">+ 新增病人</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋病歷號 / 姓名 / 電話 / HKID..." value="${escapeAttr(state.filters.patientSearch)}" oninput="state.filters.patientSearch=this.value; renderPage()"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>病歷號</th><th>姓名</th><th>性別 / 年齡</th><th>聯絡</th><th>藥物敏感</th><th>提醒</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="7"><div class="empty">未有病人資料</div></td></tr>` :
+                items.map(p => `
+                  <tr>
+                    <td>${escapeHtml(p.patientId)}</td>
+                    <td><strong>${escapeHtml(p.nameZh || "—")}</strong><br><span style="color:#64748b">${escapeHtml(p.nameEn || "—")}</span></td>
+                    <td>${badge(p.gender || "—")}<br><span style="color:#64748b">${escapeHtml(String(calculateAge(p.dob)))} 歲</span></td>
+                    <td>${escapeHtml(p.phone || "—")}<br><span style="color:#64748b">${escapeHtml(p.hkid || "—")}</span></td>
+                    <td>${escapeHtml(p.allergy || "—")}</td>
+                    <td>${p.alert ? `<span style="color:#be123c;font-weight:800">${escapeHtml(p.alert)}</span>` : "—"}</td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="openPatientDrawer('${p.patientId}')">詳細</button>
+                        <button class="icon-btn" onclick="openEdit('patient','${p.id}')">編輯</button>
+                        <button class="icon-btn" onclick="openCreate('appointment'); setTimeout(()=>selectPatientForForm('${p.patientId}'),50)">預約</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('patient','${p.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Consultations ---------- */
+function renderConsultations() {
+  const search = state.filters.consultSearch.trim().toLowerCase();
+  const items = state.data.consultations
+    .filter(c => !search || [c.patientName,c.patientId,c.complaint,c.diagnosis,c.rx,c.plan,c.notes].join(" ").toLowerCase().includes(search))
+    .sort((a,b)=>new Date(b.dateTime)-new Date(a.dateTime));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>診症記錄</h3><p>簡單 SOAP / GP note + 處方 quick pick</p></div>
+        <button class="btn primary" onclick="openCreate('consultation')">+ 新增診症</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋病人 / 診斷 / 處方..." value="${escapeAttr(state.filters.consultSearch)}" oninput="state.filters.consultSearch=this.value; renderPage()"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日期時間</th><th>病人</th><th>主訴</th><th>生命表徵</th><th>診斷</th><th>處方 / 計劃</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="7"><div class="empty">未有診症記錄</div></td></tr>` :
+                items.map(c => `
+                  <tr>
+                    <td>${formatDateTime(c.dateTime)}</td>
+                    <td><strong>${escapeHtml(c.patientName)}</strong><br><span style="color:#64748b">${escapeHtml(c.patientId)}</span></td>
+                    <td>${escapeHtml(c.complaint || "—")}</td>
+                    <td>BP ${escapeHtml(c.bp || "—")}<br>P ${escapeHtml(c.pulse || "—")} · T ${escapeHtml(c.temp || "—")}<br>Wt ${escapeHtml(c.weight || "—")}</td>
+                    <td>${escapeHtml(c.diagnosis || "—")}</td>
+                    <td>${escapeHtml(c.rx || "—")}<br><span style="color:#64748b">${escapeHtml(c.plan || "")}</span></td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="openPatientDrawer('${c.patientId}')">病人</button>
+                        <button class="icon-btn" onclick="openEdit('consultation','${c.id}')">編輯</button>
+                        <button class="icon-btn" onclick="prepareDocFromConsult('${c.id}')">文件</button>
+                        <button class="icon-btn" onclick="createBillFromConsultation('${c.id}')">收費</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('consultation','${c.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Billing ---------- */
+function renderBilling() {
+  const search = state.filters.billSearch.trim().toLowerCase();
+  const items = state.data.bills
+    .filter(b => {
+      const hitText = !search || [b.id,b.patientName,b.item,b.method,b.notes].join(" ").toLowerCase().includes(search);
+      const hitStatus = state.filters.billStatus === "全部" || b.status === state.filters.billStatus;
+      return hitText && hitStatus;
+    })
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>收費管理</h3><p>診金、藥費、文件費、部分付款、正式收據</p></div>
+        <button class="btn primary" onclick="openCreate('bill')">+ 新增收費</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋單號 / 病人 / 項目..." value="${escapeAttr(state.filters.billSearch)}" oninput="state.filters.billSearch=this.value; renderPage()"></div>
+          <div class="filter">
+            <select onchange="state.filters.billStatus=this.value; renderPage()">
+              ${["全部","已付款","部分付款","未付款"].map(v => `<option ${state.filters.billStatus===v?"selected":""}>${v}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日期</th><th>單號</th><th>病人</th><th>項目</th><th>金額</th><th>已收</th><th>方式</th><th>狀態</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="9"><div class="empty">未有收費記錄</div></td></tr>` :
+                items.map(b => `
+                  <tr>
+                    <td>${formatDate(b.date)}</td>
+                    <td>${escapeHtml(b.id)}</td>
+                    <td>${escapeHtml(b.patientName)}</td>
+                    <td>${escapeHtml(b.item)}</td>
+                    <td>${formatMoney(b.amount)}</td>
+                    <td>${formatMoney(b.paid)}</td>
+                    <td>${escapeHtml(b.method || "—")}</td>
+                    <td>${badge(b.status)}</td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="printReceipt('${b.id}')">收據</button>
+                        <button class="icon-btn" onclick="openEdit('bill','${b.id}')">編輯</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('bill','${b.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Medications ---------- */
+function renderMedications() {
+  const search = state.filters.medSearch.trim().toLowerCase();
+  const items = state.data.medications
+    .filter(m => !search || [m.name,m.generic,m.dosage,m.form,m.instruction,m.qty].join(" ").toLowerCase().includes(search))
+    .sort((a,b)=>(a.name || "").localeCompare(b.name || ""));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>藥物 Master</h3><p>常用藥物 / quick pick 處方模板</p></div>
+        <button class="btn primary" onclick="openCreate('medication')">+ 新增藥物</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋藥名 / generic / dosage..." value="${escapeAttr(state.filters.medSearch)}" oninput="state.filters.medSearch=this.value; renderPage()"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>藥名</th><th>Generic</th><th>Dosage</th><th>預設用法</th><th>預設數量</th><th>參考價錢</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="7"><div class="empty">未有藥物資料</div></td></tr>` :
+                items.map(m => `
+                  <tr>
+                    <td><strong>${escapeHtml(m.name)}</strong></td>
+                    <td>${escapeHtml(m.generic || "—")}</td>
+                    <td>${escapeHtml(m.dosage || "—")}</td>
+                    <td>${escapeHtml(m.instruction || "—")}</td>
+                    <td>${escapeHtml(m.qty || "—")}</td>
+                    <td>${formatMoney(m.price || 0)}</td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="openEdit('medication','${m.id}')">編輯</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('medication','${m.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Follow-ups ---------- */
+function renderFollowups() {
+  const search = state.filters.followupSearch.trim().toLowerCase();
+  const items = state.data.followups
+    .filter(f => {
+      const hitText = !search || [f.patientName,f.patientId,f.subject,f.note,f.category].join(" ").toLowerCase().includes(search);
+      const hitStatus = state.filters.followupStatus === "全部" || f.status === state.filters.followupStatus;
+      return hitText && hitStatus;
+    })
+    .sort((a,b)=>new Date(a.dueAt)-new Date(b.dueAt));
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Follow-up</h3><p>電話 / WhatsApp / 回覆提醒</p></div>
+        <button class="btn primary" onclick="openCreate('followup')">+ 新增 Follow-up</button>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜尋病人 / 主題..." value="${escapeAttr(state.filters.followupSearch)}" oninput="state.filters.followupSearch=this.value; renderPage()"></div>
+          <div class="filter">
+            <select onchange="state.filters.followupStatus=this.value; renderPage()">
+              ${["全部","開放","進行中","完成"].map(v => `<option ${state.filters.followupStatus===v?"selected":""}>${v}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>到期時間</th><th>病人</th><th>類別</th><th>優先</th><th>狀態</th><th>主題</th><th>備註</th><th>操作</th></tr></thead>
+            <tbody>
+              ${ items.length === 0 ? `<tr><td colspan="8"><div class="empty">未有 Follow-up 記錄</div></td></tr>` :
+                items.map(f => `
+                  <tr>
+                    <td>${formatDateTime(f.dueAt)}</td>
+                    <td><strong>${escapeHtml(f.patientName)}</strong><br><span style="color:#64748b">${escapeHtml(f.patientId)}</span></td>
+                    <td>${escapeHtml(f.category)}</td>
+                    <td>${badge(f.priority)}</td>
+                    <td>${badge(f.status)}</td>
+                    <td>${escapeHtml(f.subject || "—")}</td>
+                    <td>${escapeHtml(f.note || "—")}</td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="icon-btn" onclick="openPatientDrawer('${f.patientId}')">病人</button>
+                        <button class="icon-btn" onclick="openWhatsAppFollowup('${f.id}')">WhatsApp</button>
+                        <button class="icon-btn" onclick="openEdit('followup','${f.id}')">編輯</button>
+                        <button class="icon-btn danger" onclick="deleteRecord('followup','${f.id}')">刪除</button>
+                      </div>
+                    </td>
+                  </tr>`).join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Documents ---------- */
+function renderDocuments() {
+  recalcSickDays();
+  const docList = state.data.documents.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,30);
+  return `
+    <div class="doc-layout">
+      <div class="card">
+        <div class="card-head"><div><h3>文件輸入</h3><p>直接預覽，然後列印</p></div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>文件類型</label>
+              <select onchange="setDocValue('type', this.value)">
+                ${[["sick","病假紙"],["attendance","到診證明"],["referral","轉介信"],["prescription","處方"]].map(v => `<option value="${v[0]}" ${state.doc.type===v[0]?"selected":""}>${v[1]}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field span-2">
+              <label>病人</label>
+              <select onchange="setDocValue('patientId', this.value)">
+                <option value="">— 請選擇病人 —</option>
+                ${state.data.patients.map(p => `<option value="${escapeAttr(p.patientId)}" ${state.doc.patientId===p.patientId?"selected":""}>${escapeHtml(p.patientId)} · ${escapeHtml(p.nameZh || "")}${p.nameEn ? " / " + escapeHtml(p.nameEn) : ""}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field"><label>文件日期</label><input type="date" value="${escapeAttr(state.doc.date)}" onchange="setDocValue('date', this.value)"></div>
+            <div class="field span-2"><label>診斷 / 病因</label><input value="${escapeAttr(state.doc.diagnosis)}" oninput="setDocValue('diagnosis', this.value)"></div>
+            ${state.doc.type === "sick" ? `
+              <div class="field"><label>病假開始</label><input type="date" value="${escapeAttr(state.doc.sickFrom)}" onchange="setDocValue('sickFrom', this.value)"></div>
+              <div class="field"><label>病假結束</label><input type="date" value="${escapeAttr(state.doc.sickTo)}" onchange="setDocValue('sickTo', this.value)"></div>
+              <div class="field"><label>病假日數</label><input type="number" value="${escapeAttr(state.doc.sickDays)}" oninput="setDocValue('sickDays', this.value)"></div>
+              <div class="field span-3"><label>備註</label><textarea rows="3" oninput="setDocValue('note', this.value)">${escapeHtml(state.doc.note || "")}</textarea></div>
+            ` : ""}
+            ${state.doc.type === "attendance" ? `
+              <div class="field"><label>時段</label><select onchange="setDocValue('attendSession', this.value)">${["上午","下午"].map(v => `<option ${state.doc.attendSession===v?"selected":""}>${v}</option>`).join("")}</select></div>
+              <div class="field span-2"><label>備註</label><input value="${escapeAttr(state.doc.note || "")}" oninput="setDocValue('note', this.value)"></div>
+            ` : ""}
+            ${state.doc.type === "referral" ? `
+              <div class="field span-3"><label>收件人 / 轉介對象</label><input value="${escapeAttr(state.doc.referralTo || "")}" oninput="setDocValue('referralTo', this.value)"></div>
+              <div class="field span-3"><label>內文</label><textarea rows="7" oninput="setDocValue('referralBody', this.value)">${escapeHtml(state.doc.referralBody || "")}</textarea></div>
+            ` : ""}
+            ${state.doc.type === "prescription" ? `
+              <div class="field span-3">
+                <label>處方 Quick Pick</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  ${state.data.medications.map(m => `<button type="button" class="btn soft" onclick="appendMedicationToDoc('${m.id}')">${escapeHtml(m.name)}</button>`).join("")}
+                </div>
+              </div>
+              <div class="field span-3"><label>處方內容（每行：藥名 | 用法 | 數量）</label><textarea rows="8" oninput="setDocValue('rxLines', this.value)">${escapeHtml(state.doc.rxLines || "")}</textarea></div>
+              <div class="field span-3"><label>附註</label><textarea rows="3" oninput="setDocValue('note', this.value)">${escapeHtml(state.doc.note || "")}</textarea></div>
+            ` : ""}
+          </div>
+          <div class="actions" style="margin-top:18px">
+            <button class="btn primary" onclick="saveCurrentDocument()">儲存文件</button>
+            <button class="btn default" onclick="printCurrentDocument()">列印 / PDF</button>
+            <button class="btn danger" onclick="resetDocForm()">清空文件</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:20px">
+        <div class="card">
+          <div class="card-head"><div><h3>文件預覽</h3><p>以 A4 版面顯示</p></div></div>
+          <div class="card-body"><div class="doc-paper-wrap"><div id="docPreview">${generateDocumentHTML(state.doc)}</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>文件記錄表</h3><p>最近 30 筆</p></div></div>
+          <div class="card-body">
+            <div class="list">
+              ${ docList.length === 0 ? `<div class="empty">未有已儲存文件</div>` :
+                docList.map(d => `
+                  <div class="list-item">
+                    <div>
+                      <div class="item-title">${escapeHtml(docTypeLabel(d.type))} · ${escapeHtml(d.patientName || "未選病人")}</div>
+                      <div class="item-sub">${formatDate(d.date)} · ${escapeHtml(d.title || "")}</div>
+                    </div>
+                    <div class="table-actions">
+                      <button class="icon-btn" onclick="loadSavedDocument('${d.id}')">載入</button>
+                      <button class="icon-btn" onclick="printSavedDocument('${d.id}')">列印</button>
+                      <button class="icon-btn danger" onclick="deleteRecord('document','${d.id}')">刪除</button>
+                    </div>
+                  </div>`).join("")
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Reports ---------- */
+function renderReports() {
+  const today = todayInput();
+  const thisMonth = monthKey(today);
+  const thisYear = yearKey(today);
+  const dailyBills = state.data.bills.filter(b => sameDate(b.date, today));
+  const monthlyBills = state.data.bills.filter(b => monthKey(b.date) === thisMonth);
+  const yearlyBills = state.data.bills.filter(b => yearKey(b.date) === thisYear);
+  const dailyPaid = dailyBills.reduce((s,b)=>s+Number(b.paid||0),0);
+  const monthlyPaid = monthlyBills.reduce((s,b)=>s+Number(b.paid||0),0);
+  const yearlyPaid = yearlyBills.reduce((s,b)=>s+Number(b.paid||0),0);
+  const dailyBilled = dailyBills.reduce((s,b)=>s+Number(b.amount||0),0);
+  const monthlyBilled = monthlyBills.reduce((s,b)=>s+Number(b.amount||0),0);
+  const yearlyBilled = yearlyBills.reduce((s,b)=>s+Number(b.amount||0),0);
+  const outstanding = state.data.bills.reduce((s,b)=>s+Math.max(0, Number(b.amount||0)-Number(b.paid||0)),0);
+  return `
+    <div class="grid-4">
+      <div class="stat-card"><div class="label">今日實收</div><div class="value">${formatMoney(dailyPaid)}</div></div>
+      <div class="stat-card"><div class="label">本月實收</div><div class="value">${formatMoney(monthlyPaid)}</div></div>
+      <div class="stat-card"><div class="label">本年實收</div><div class="value">${formatMoney(yearlyPaid)}</div></div>
+      <div class="stat-card"><div class="label">總未收款</div><div class="value">${formatMoney(outstanding)}</div></div>
+    </div>
+    <div class="layout-3">
+      <div class="card"><div class="card-head"><div><h3>每日結數</h3><p>${escapeHtml(today)}</p></div></div>
+        <div class="card-body"><div class="list">
+          <div class="list-item"><div><div class="item-title">應收</div><div class="item-sub">${formatMoney(dailyBilled)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">實收</div><div class="item-sub">${formatMoney(dailyPaid)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">單數</div><div class="item-sub">${dailyBills.length}</div></div></div>
+        </div></div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>每月結數</h3><p>${escapeHtml(thisMonth)}</p></div></div>
+        <div class="card-body"><div class="list">
+          <div class="list-item"><div><div class="item-title">應收</div><div class="item-sub">${formatMoney(monthlyBilled)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">實收</div><div class="item-sub">${formatMoney(monthlyPaid)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">單數</div><div class="item-sub">${monthlyBills.length}</div></div></div>
+        </div></div>
+      </div>
+      <div class="card"><div class="card-head"><div><h3>每年結數</h3><p>${escapeHtml(thisYear)}</p></div></div>
+        <div class="card-body"><div class="list">
+          <div class="list-item"><div><div class="item-title">應收</div><div class="item-sub">${formatMoney(yearlyBilled)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">實收</div><div class="item-sub">${formatMoney(yearlyPaid)}</div></div></div>
+          <div class="list-item"><div><div class="item-title">單數</div><div class="item-sub">${yearlyBills.length}</div></div></div>
+        </div></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Settings ---------- */
+function renderSettings() {
+  const s = state.data.settings;
+  return `
+    <div class="layout-2">
+      <div class="card">
+        <div class="card-head"><div><h3>診所資料</h3><p>會用於文件列印及收據</p></div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field span-3"><label>診所英文名稱</label><input value="${escapeAttr(s.clinicName)}" oninput="updateSetting('clinicName', this.value)"></div>
+            <div class="field span-3"><label>診所中文名稱</label><input value="${escapeAttr(s.clinicNameZh)}" oninput="updateSetting('clinicNameZh', this.value)"></div>
+            <div class="field"><label>電話</label><input value="${escapeAttr(s.phone)}" oninput="updateSetting('phone', this.value)"></div>
+            <div class="field span-2"><label>地址</label><input value="${escapeAttr(s.address)}" oninput="updateSetting('address', this.value)"></div>
+            <div class="field"><label>醫生英文名</label><input value="${escapeAttr(s.doctorNameEn)}" oninput="updateSetting('doctorNameEn', this.value)"></div>
+            <div class="field"><label>醫生中文名</label><input value="${escapeAttr(s.doctorNameZh)}" oninput="updateSetting('doctorNameZh', this.value)"></div>
+            <div class="field"><label>護士 / 助理名稱</label><input value="${escapeAttr(s.nurseName)}" oninput="updateSetting('nurseName', this.value)"></div>
+            <div class="field span-2"><label>醫生職銜</label><input value="${escapeAttr(s.doctorTitle)}" oninput="updateSetting('doctorTitle', this.value)"></div>
+            <div class="field"><label>醫生註冊編號</label><input value="${escapeAttr(s.doctorRegNo)}" oninput="updateSetting('doctorRegNo', this.value)"></div>
+            <div class="field span-3"><label>文件頁尾附註</label><textarea rows="3" oninput="updateSetting('footerNote', this.value)">${escapeHtml(s.footerNote || "")}</textarea></div>
+            <div class="field span-3"><label>收據頁尾</label><textarea rows="3" oninput="updateSetting('receiptFooter', this.value)">${escapeHtml(s.receiptFooter || "")}</textarea></div>
+          </div>
+          <div class="actions" style="margin-top:18px"><button class="btn primary" onclick="saveSettings()">儲存設定</button></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:20px">
+        <div class="card">
+          <div class="card-head"><div><h3>Logo / 簽名</h3><p>只存喺呢部電腦，唔會上傳 Supabase</p></div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field span-2">
+                <label>診所 Logo</label>
+                <div class="img-upload" id="imgZone_logo" onclick="document.getElementById('fileInput_logo').click()">
+                  <img id="imgThumb_logo" alt="">
+                  <div class="img-plus">+</div>
+                  <div class="img-label">按此上載 Logo</div>
+                  <button type="button" class="img-remove" onclick="event.stopPropagation();removeStoredImage('logo')">&times;</button>
+                </div>
+                <input type="file" id="fileInput_logo" accept="image/*" hidden onchange="handleImageUploadEvent('logo', event)">
+              </div>
+              <div class="field span-2">
+                <label>醫生簽名</label>
+                <div class="img-upload" id="imgZone_signature" onclick="document.getElementById('fileInput_signature').click()">
+                  <img id="imgThumb_signature" alt="">
+                  <div class="img-plus">+</div>
+                  <div class="img-label">按此上載簽名</div>
+                  <button type="button" class="img-remove" onclick="event.stopPropagation();removeStoredImage('signature')">&times;</button>
+                </div>
+                <input type="file" id="fileInput_signature" accept="image/*" hidden onchange="handleImageUploadEvent('signature', event)">
+              </div>
+            </div>
+            <p class="hint" style="margin-top:10px">建議上載透明背景 PNG。換部機要重新上載一次。</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>帳戶 / 雲端同步</h3><p>Supabase 狀態</p></div></div>
+          <div class="card-body">
+            <div class="list">
+              <div class="list-item"><div><div class="item-title">登入帳戶</div><div class="item-sub">${escapeHtml(currentUser ? currentUser.email : "—")}</div></div></div>
+              <div class="list-item"><div><div class="item-title">同步方式</div><div class="item-sub">每次新增/編輯/刪除都會自動存本機，再自動上傳雲端。</div></div></div>
+              <div class="list-item"><div><div class="item-title">多裝置</div><div class="item-sub">喺另一部電腦用返同一帳戶登入，就會讀到雲端最新資料。</div></div></div>
+            </div>
+            <div class="actions" style="margin-top:14px">
+              <button class="btn default" onclick="manualSync()">立即同步</button>
+              <button class="btn default" onclick="doSignOut()">登出</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Modal：新增 / 編輯 ---------- */
+function openCreate(type) {
+  state.recordType = type;
+  state.editId = null;
+  resetForm(type);
+  renderForm();
+  document.getElementById("modalTitle").textContent = `新增${recordTypeLabel(type)}`;
+  document.getElementById("modalSubtitle").textContent = "請填寫資料";
+  document.getElementById("recordModal").classList.add("show");
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+function openEdit(type, id) {
+  state.recordType = type;
+  state.editId = id;
+  let item = null;
+  if (type === "patient") item = state.data.patients.find(x => x.id === id);
+  if (type === "appointment") item = state.data.appointments.find(x => x.id === id);
+  if (type === "consultation") item = state.data.consultations.find(x => x.id === id);
+  if (type === "bill") item = state.data.bills.find(x => x.id === id);
+  if (type === "medication") item = state.data.medications.find(x => x.id === id);
+  if (type === "followup") item = state.data.followups.find(x => x.id === id);
+  state.form = JSON.parse(JSON.stringify(item || {}));
+  renderForm();
+  document.getElementById("modalTitle").textContent = `編輯${recordTypeLabel(type)}`;
+  document.getElementById("modalSubtitle").textContent = "修改資料";
+  document.getElementById("recordModal").classList.add("show");
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("recordModal").classList.remove("show");
+  document.getElementById("modalBackdrop").classList.remove("show");
+}
+function recordTypeLabel(type) {
+  const map = { patient:"病人", appointment:"預約", consultation:"診症", bill:"收費", medication:"藥物", followup:"Follow-up" };
+  return map[type] || type;
+}
+function resetForm(type) {
+  if (type === "patient") state.form = { patientId: autoPatientCode(), nameZh: "", nameEn: "", gender: "男", dob: "", hkid: "", phone: "", address: "", allergy: "", chronic: "", alert: "", notes: "" };
+  if (type === "appointment") state.form = { patientId: "", patientName: "", dateTime: nowDateTimeInput(), type: "普通科", status: "已預約", complaint: "", notes: "" };
+  if (type === "consultation") state.form = { patientId: "", patientName: "", appointmentId: "", dateTime: nowDateTimeInput(), complaint: "", bp: "", pulse: "", temp: "", weight: "", history: "", exam: "", diagnosis: "", rx: "", plan: "", followupDate: "", notes: "" };
+  if (type === "bill") state.form = { id: autoBillCode(), patientId: "", patientName: "", date: todayInput(), item: "", amount: "", paid: "", method: "現金", notes: "" };
+  if (type === "medication") state.form = { name:"", generic:"", dosage:"", form:"tablet", instruction:"", qty:"", price:"", active:true };
+  if (type === "followup") state.form = { patientId:"", patientName:"", dueAt: nowDateTimeInput(), category:"WhatsApp", priority:"普通", status:"開放", subject:"", note:"" };
+}
+function setFormValue(key, value) { state.form[key] = value; }
+function selectPatientForForm(patientId) {
+  const p = getPatientById(patientId);
+  state.form.patientId = patientId;
+  state.form.patientName = p ? patientDisplayName(p) : "";
+  renderForm();
+}
+function selectAppointmentForConsultation(appointmentId) {
+  const a = state.data.appointments.find(x => x.id === appointmentId);
+  state.form.appointmentId = appointmentId;
+  if (a) { state.form.patientId = a.patientId; state.form.patientName = a.patientName; state.form.complaint = a.complaint || ""; }
+  renderForm();
+}
+function appendMedicationToConsult(id){
+  const m = getMedicationById(id); if(!m) return;
+  const line = `${m.name} | ${m.instruction || ""} | ${m.qty || ""}`;
+  state.form.rx = state.form.rx ? `${state.form.rx}\n${line}` : line;
+  renderForm();
+}
+function appendQuickRxTemplate(idx){
+  const t = rxQuickPickDefault[idx]; if(!t) return;
+  state.form.rx = state.form.rx ? `${state.form.rx}\n${t.text}` : t.text;
+  renderForm();
+}
+function appendMedicationToDoc(id){
+  const m = getMedicationById(id); if(!m) return;
+  const line = `${m.name} | ${m.instruction || ""} | ${m.qty || ""}`;
+  state.doc.rxLines = state.doc.rxLines ? `${state.doc.rxLines}\n${line}` : line;
+  renderPage();
+}
+function renderForm() {
+  const f = state.form;
+  let html = "";
+  if (state.recordType === "patient") {
+    html = `
+      <div class="form-grid">
+        <div class="field"><label>病歷號</label><input value="${escapeAttr(f.patientId || "")}" oninput="setFormValue('patientId', this.value)"></div>
+        <div class="field"><label>中文姓名</label><input value="${escapeAttr(f.nameZh || "")}" oninput="setFormValue('nameZh', this.value)"></div>
+        <div class="field"><label>英文姓名</label><input value="${escapeAttr(f.nameEn || "")}" oninput="setFormValue('nameEn', this.value)"></div>
+        <div class="field"><label>性別</label><select onchange="setFormValue('gender', this.value)">${["男","女"].map(v => `<option ${f.gender===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field"><label>出生日期</label><input type="date" value="${escapeAttr(f.dob || "")}" oninput="setFormValue('dob', this.value)"></div>
+        <div class="field"><label>HKID</label><input value="${escapeAttr(f.hkid || "")}" oninput="setFormValue('hkid', this.value)"></div>
+        <div class="field"><label>電話</label><input value="${escapeAttr(f.phone || "")}" oninput="setFormValue('phone', this.value)"></div>
+        <div class="field span-2"><label>地址</label><input value="${escapeAttr(f.address || "")}" oninput="setFormValue('address', this.value)"></div>
+        <div class="field"><label>藥物敏感</label><input value="${escapeAttr(f.allergy || "")}" oninput="setFormValue('allergy', this.value)"></div>
+        <div class="field"><label>長期病</label><input value="${escapeAttr(f.chronic || "")}" oninput="setFormValue('chronic', this.value)"></div>
+        <div class="field"><label>提醒 / Alert</label><input value="${escapeAttr(f.alert || "")}" oninput="setFormValue('alert', this.value)"></div>
+        <div class="field span-3"><label>備註</label><textarea rows="4" oninput="setFormValue('notes', this.value)">${escapeHtml(f.notes || "")}</textarea></div>
+      </div>`;
+  }
+  if (state.recordType === "appointment") {
+    html = `
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>病人</label>
+          <select onchange="selectPatientForForm(this.value)">
+            <option value="">— 請選擇病人 —</option>
+            ${state.data.patients.map(p => `<option value="${escapeAttr(p.patientId)}" ${f.patientId===p.patientId?"selected":""}>${escapeHtml(p.patientId)} · ${escapeHtml(patientDisplayName(p))}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>日期時間</label><input type="datetime-local" value="${escapeAttr(f.dateTime || "")}" oninput="setFormValue('dateTime', this.value)"></div>
+        <div class="field"><label>類型</label><select onchange="setFormValue('type', this.value)">${["普通科","覆診","文件"].map(v => `<option ${f.type===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field"><label>狀態</label><select onchange="setFormValue('status', this.value)">${["已預約","已到達","診症中","已完成","取消","失約"].map(v => `<option ${f.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field span-3"><label>主訴 / 目的</label><input value="${escapeAttr(f.complaint || "")}" oninput="setFormValue('complaint', this.value)"></div>
+        <div class="field span-3"><label>備註</label><textarea rows="4" oninput="setFormValue('notes', this.value)">${escapeHtml(f.notes || "")}</textarea></div>
+      </div>`;
+  }
+  if (state.recordType === "consultation") {
+    html = `
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>病人</label>
+          <select onchange="selectPatientForForm(this.value)">
+            <option value="">— 請選擇病人 —</option>
+            ${state.data.patients.map(p => `<option value="${escapeAttr(p.patientId)}" ${f.patientId===p.patientId?"selected":""}>${escapeHtml(p.patientId)} · ${escapeHtml(patientDisplayName(p))}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>日期時間</label><input type="datetime-local" value="${escapeAttr(f.dateTime || "")}" oninput="setFormValue('dateTime', this.value)"></div>
+        <div class="field span-3">
+          <label>關聯預約（可選）</label>
+          <select onchange="selectAppointmentForConsultation(this.value)">
+            <option value="">— 不連結預約 —</option>
+            ${state.data.appointments.map(a => `<option value="${escapeAttr(a.id)}" ${f.appointmentId===a.id?"selected":""}>${escapeHtml(formatDateTime(a.dateTime))} · ${escapeHtml(a.patientName)} · ${escapeHtml(a.complaint || a.type)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field span-3"><label>主訴</label><input value="${escapeAttr(f.complaint || "")}" oninput="setFormValue('complaint', this.value)"></div>
+        <div class="field"><label>血壓 BP</label><input value="${escapeAttr(f.bp || "")}" oninput="setFormValue('bp', this.value)"></div>
+        <div class="field"><label>脈搏 Pulse</label><input value="${escapeAttr(f.pulse || "")}" oninput="setFormValue('pulse', this.value)"></div>
+        <div class="field"><label>體溫 Temp</label><input value="${escapeAttr(f.temp || "")}" oninput="setFormValue('temp', this.value)"></div>
+        <div class="field"><label>體重 Weight</label><input value="${escapeAttr(f.weight || "")}" oninput="setFormValue('weight', this.value)"></div>
+        <div class="field span-2"><label>病史</label><input value="${escapeAttr(f.history || "")}" oninput="setFormValue('history', this.value)"></div>
+        <div class="field span-3"><label>檢查</label><textarea rows="3" oninput="setFormValue('exam', this.value)">${escapeHtml(f.exam || "")}</textarea></div>
+        <div class="field span-3"><label>診斷</label><textarea rows="3" oninput="setFormValue('diagnosis', this.value)">${escapeHtml(f.diagnosis || "")}</textarea></div>
+        <div class="field span-3">
+          <div class="section-block">
+            <div class="section-title">處方 Quick Pick</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${rxQuickPickDefault.map((t,idx)=>`<button type="button" class="btn soft" onclick="appendQuickRxTemplate(${idx})">${escapeHtml(t.name)}</button>`).join("")}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${state.data.medications.map(m=>`<button type="button" class="btn default" onclick="appendMedicationToConsult('${m.id}')">${escapeHtml(m.name)}</button>`).join("")}</div>
+            <label>處方</label>
+            <textarea rows="5" oninput="setFormValue('rx', this.value)">${escapeHtml(f.rx || "")}</textarea>
+          </div>
+        </div>
+        <div class="field span-2"><label>計劃 / Advice</label><textarea rows="3" oninput="setFormValue('plan', this.value)">${escapeHtml(f.plan || "")}</textarea></div>
+        <div class="field"><label>覆診日期</label><input type="date" value="${escapeAttr(f.followupDate || "")}" oninput="setFormValue('followupDate', this.value)"></div>
+        <div class="field span-3"><label>備註</label><textarea rows="3" oninput="setFormValue('notes', this.value)">${escapeHtml(f.notes || "")}</textarea></div>
+      </div>`;
+  }
+  if (state.recordType === "bill") {
+    html = `
+      <div class="form-grid">
+        <div class="field"><label>單號</label><input value="${escapeAttr(f.id || "")}" oninput="setFormValue('id', this.value)"></div>
+        <div class="field span-2">
+          <label>病人</label>
+          <select onchange="selectPatientForForm(this.value)">
+            <option value="">— 請選擇病人 —</option>
+            ${state.data.patients.map(p => `<option value="${escapeAttr(p.patientId)}" ${f.patientId===p.patientId?"selected":""}>${escapeHtml(p.patientId)} · ${escapeHtml(patientDisplayName(p))}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>日期</label><input type="date" value="${escapeAttr(f.date || "")}" oninput="setFormValue('date', this.value)"></div>
+        <div class="field span-2"><label>項目</label><input value="${escapeAttr(f.item || "")}" oninput="setFormValue('item', this.value)"></div>
+        <div class="field"><label>金額</label><input type="number" value="${escapeAttr(f.amount || "")}" oninput="setFormValue('amount', this.value)"></div>
+        <div class="field"><label>已收</label><input type="number" value="${escapeAttr(f.paid || "")}" oninput="setFormValue('paid', this.value)"></div>
+        <div class="field"><label>付款方式</label><select onchange="setFormValue('method', this.value)">${["現金","信用卡","轉數快","EPS","銀行轉帳"].map(v => `<option ${f.method===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field span-3"><label>備註</label><textarea rows="4" oninput="setFormValue('notes', this.value)">${escapeHtml(f.notes || "")}</textarea></div>
+      </div>`;
+  }
+  if (state.recordType === "medication") {
+    html = `
+      <div class="form-grid">
+        <div class="field"><label>藥名</label><input value="${escapeAttr(f.name || "")}" oninput="setFormValue('name', this.value)"></div>
+        <div class="field"><label>Generic</label><input value="${escapeAttr(f.generic || "")}" oninput="setFormValue('generic', this.value)"></div>
+        <div class="field"><label>Dosage</label><input value="${escapeAttr(f.dosage || "")}" oninput="setFormValue('dosage', this.value)"></div>
+        <div class="field"><label>Form</label><select onchange="setFormValue('form', this.value)">${["tablet","capsule","syrup","cream","drops","other"].map(v => `<option ${f.form===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field span-2"><label>預設用法</label><input value="${escapeAttr(f.instruction || "")}" oninput="setFormValue('instruction', this.value)"></div>
+        <div class="field"><label>預設數量</label><input value="${escapeAttr(f.qty || "")}" oninput="setFormValue('qty', this.value)"></div>
+        <div class="field"><label>參考價錢</label><input type="number" value="${escapeAttr(f.price || "")}" oninput="setFormValue('price', this.value)"></div>
+        <div class="field"><label>啟用</label><select onchange="setFormValue('active', this.value==='true')"><option value="true" ${f.active ? "selected":""}>是</option><option value="false" ${!f.active ? "selected":""}>否</option></select></div>
+      </div>`;
+  }
+  if (state.recordType === "followup") {
+    html = `
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>病人</label>
+          <select onchange="selectPatientForForm(this.value)">
+            <option value="">— 請選擇病人 —</option>
+            ${state.data.patients.map(p => `<option value="${escapeAttr(p.patientId)}" ${f.patientId===p.patientId?"selected":""}>${escapeHtml(p.patientId)} · ${escapeHtml(patientDisplayName(p))}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>到期時間</label><input type="datetime-local" value="${escapeAttr(f.dueAt || "")}" oninput="setFormValue('dueAt', this.value)"></div>
+        <div class="field"><label>類別</label><select onchange="setFormValue('category', this.value)">${["WhatsApp","電話","覆診提醒","文件","其他"].map(v => `<option ${f.category===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field"><label>優先</label><select onchange="setFormValue('priority', this.value)">${["低","普通","高","緊急"].map(v => `<option ${f.priority===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field"><label>狀態</label><select onchange="setFormValue('status', this.value)">${["開放","進行中","完成"].map(v => `<option ${f.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
+        <div class="field span-3"><label>主題</label><input value="${escapeAttr(f.subject || "")}" oninput="setFormValue('subject', this.value)"></div>
+        <div class="field span-3"><label>備註</label><textarea rows="4" oninput="setFormValue('note', this.value)">${escapeHtml(f.note || "")}</textarea></div>
+      </div>`;
+  }
+  document.getElementById("modalBody").innerHTML = html;
+}
+function saveRecord() {
+  const type = state.recordType;
+  const f = JSON.parse(JSON.stringify(state.form));
+  if (type === "patient") {
+    if (!f.patientId || (!f.nameZh && !f.nameEn)) return toast("請填寫病歷號及姓名", "#d97706");
+    const item = { ...f, id: state.editId || uid("PAT"), createdAt: f.createdAt || new Date().toISOString() };
+    if (state.editId) state.data.patients = state.data.patients.map(x => x.id === state.editId ? item : x);
+    else state.data.patients.unshift(item);
+  }
+  if (type === "appointment") {
+    if (!f.patientId || !f.dateTime) return toast("請選擇病人及日期時間", "#d97706");
+    const p = getPatientById(f.patientId);
+    const item = { ...f, id: state.editId || uid("APT"), patientName: p ? patientDisplayName(p) : f.patientName, createdAt: f.createdAt || new Date().toISOString() };
+    if (state.editId) state.data.appointments = state.data.appointments.map(x => x.id === state.editId ? item : x);
+    else state.data.appointments.unshift(item);
+  }
+  if (type === "consultation") {
+    if (!f.patientId || !f.dateTime) return toast("請選擇病人及日期時間", "#d97706");
+    const p = getPatientById(f.patientId);
+    const item = { ...f, id: state.editId || uid("CON"), patientName: p ? patientDisplayName(p) : f.patientName, createdAt: f.createdAt || new Date().toISOString() };
+    if (state.editId) state.data.consultations = state.data.consultations.map(x => x.id === state.editId ? item : x);
+    else state.data.consultations.unshift(item);
+    if (item.appointmentId) state.data.appointments = state.data.appointments.map(a => a.id === item.appointmentId ? { ...a, status:"已完成" } : a);
+  }
+  if (type === "bill") {
+    if (!f.patientId || !f.date || !f.item) return toast("請填寫病人、日期及項目", "#d97706");
+    const p = getPatientById(f.patientId);
+    const amount = Number(f.amount || 0);
+    const paid = Number(f.paid || 0);
+    const item = { ...f, id: f.id || state.editId || uid("INV"), patientName: p ? patientDisplayName(p) : f.patientName, amount, paid, status: billStatus(amount, paid), createdAt: f.createdAt || new Date().toISOString() };
+    if (state.editId) state.data.bills = state.data.bills.map(x => x.id === state.editId ? item : x);
+    else state.data.bills.unshift(item);
+  }
+  if (type === "medication") {
+    if (!f.name) return toast("請填寫藥名", "#d97706");
+    const item = { ...f, id: state.editId || uid("MED"), price: Number(f.price || 0) };
+    if (state.editId) state.data.medications = state.data.medications.map(x => x.id === state.editId ? item : x);
+    else state.data.medications.unshift(item);
+  }
+  if (type === "followup") {
+    if (!f.patientId || !f.dueAt || !f.subject) return toast("請填寫病人、時間及主題", "#d97706");
+    const p = getPatientById(f.patientId);
+    const item = { ...f, id: state.editId || uid("FU"), patientName: p ? patientDisplayName(p) : f.patientName, createdAt: f.createdAt || new Date().toISOString() };
+    if (state.editId) state.data.followups = state.data.followups.map(x => x.id === state.editId ? item : x);
+    else state.data.followups.unshift(item);
+  }
+  closeModal();
+  render();
+  toast("已儲存", "#059669");
+}
+function deleteRecord(type, id) {
+  if (!confirm("確定刪除？")) return;
+  if (type === "patient") state.data.patients = state.data.patients.filter(x => x.id !== id);
+  if (type === "appointment") state.data.appointments = state.data.appointments.filter(x => x.id !== id);
+  if (type === "consultation") state.data.consultations = state.data.consultations.filter(x => x.id !== id);
+  if (type === "bill") state.data.bills = state.data.bills.filter(x => x.id !== id);
+  if (type === "document") state.data.documents = state.data.documents.filter(x => x.id !== id);
+  if (type === "medication") state.data.medications = state.data.medications.filter(x => x.id !== id);
+  if (type === "followup") state.data.followups = state.data.followups.filter(x => x.id !== id);
+  render();
+  toast("已刪除", "#e11d48");
+}
+function createConsultationFromAppointment(id) {
+  const a = state.data.appointments.find(x => x.id === id); if (!a) return;
+  state.data.appointments = state.data.appointments.map(x => x.id === id ? { ...x, status:"診症中" } : x);
+  state.recordType = "consultation";
+  state.editId = null;
+  state.form = { patientId: a.patientId, patientName: a.patientName, appointmentId: a.id, dateTime: a.dateTime || nowDateTimeInput(), complaint: a.complaint || "", bp: "", pulse: "", temp: "", weight: "", history: "", exam: "", diagnosis: "", rx: "", plan: "", followupDate: "", notes: a.notes || "" };
+  renderForm();
+  document.getElementById("modalTitle").textContent = "新增診症";
+  document.getElementById("modalSubtitle").textContent = "由預約帶入";
+  document.getElementById("recordModal").classList.add("show");
+  document.getElementById("modalBackdrop").classList.add("show");
+  render();
+}
+function createBillFromConsultation(id){
+  const c = state.data.consultations.find(x => x.id === id); if(!c) return;
+  openCreate('bill');
+  state.form.patientId = c.patientId;
+  state.form.patientName = c.patientName;
+  state.form.item = c.rx ? "診金 + 藥物" : "診金";
+  state.form.amount = c.rx ? 520 : 380;
+  state.form.paid = 0;
+  renderForm();
+}
+function prepareDocFromConsult(id){
+  const c = state.data.consultations.find(x => x.id === id); if(!c) return;
+  state.doc.patientId = c.patientId;
+  state.doc.date = String(c.dateTime).slice(0,10);
+  state.doc.diagnosis = c.diagnosis || "";
+  state.doc.rxLines = c.rx || "";
+  state.page = "documents";
+  render();
+}
+
+/* ---------- 文件（病假紙 / 到診證明 / 轉介信 / 處方） ---------- */
+function setDocValue(key, value) {
+  state.doc[key] = value;
+  recalcSickDays();
+  if (state.page === "documents") renderPage();
+}
+function recalcSickDays() {
+  if (state.doc.type !== "sick") return;
+  if (!state.doc.sickFrom || !state.doc.sickTo) return;
+  const from = new Date(state.doc.sickFrom + "T00:00:00");
+  const to = new Date(state.doc.sickTo + "T00:00:00");
+  const diff = Math.floor((to - from) / 86400000) + 1;
+  if (diff > 0) state.doc.sickDays = diff;
+}
+function docTypeLabel(type) {
+  const map = { sick:"病假紙", attendance:"到診證明", referral:"轉介信", prescription:"處方" };
+  return map[type] || type;
+}
+function getDocPatient() { return getPatientById(state.doc.patientId); }
+function parseRxLines(raw) {
+  return String(raw || "").split("\n").map(x => x.trim()).filter(Boolean).map(line => {
+    const parts = line.split("|").map(x => x.trim());
+    return { name: parts[0] || "", usage: parts[1] || "", qty: parts[2] || "" };
+  });
+}
+function docHeaderBlock(rightContent){
+  const s = state.data.settings;
+  const logo = getLogoDataUrl();
+  const logoHtml = logo ? `<img src="${logo}" style="width:56px;height:56px;border-radius:16px;object-fit:contain;flex-shrink:0">` : `<div class="doc-logo">✚</div>`;
+  return `
+    <div class="doc-header">
+      <div style="display:flex;gap:12px">
+        ${logoHtml}
+        <div class="doc-clinic">
+          <h1>${escapeHtml(s.clinicNameZh || s.clinicName)}</h1>
+          <p>${escapeHtml(s.clinicName)}<br>${escapeHtml(s.address)}<br>電話：${escapeHtml(s.phone)}</p>
+        </div>
+      </div>
+      <div style="text-align:right;font-size:13px;line-height:1.5">${rightContent}</div>
+    </div>`;
+}
+function docDoctorBlockHTML(){
+  const s = state.data.settings;
+  return `<strong>${escapeHtml(s.doctorNameZh)}</strong><br>${escapeHtml(s.doctorNameEn)}<br>${escapeHtml(s.doctorTitle)}`;
+}
+function docSignBlockHTML(){
+  const s = state.data.settings;
+  const sig = getSignatureDataUrl();
+  const sigHtml = sig ? `<img src="${sig}" style="height:40px;object-fit:contain;margin-bottom:6px">` : "";
+  return `<div class="doc-sign">${sigHtml}${escapeHtml(s.doctorNameZh)}<br>${escapeHtml(s.doctorNameEn)}<br>${escapeHtml(s.doctorTitle)}</div>`;
+}
+function generateDocumentHTML(doc) {
+  const p = getPatientById(doc.patientId);
+  const s = state.data.settings;
+  const patientName = p ? patientDisplayName(p) : "未選擇病人";
+  const rx = parseRxLines(doc.rxLines);
+
+  if (doc.type === "sick") {
+    return `
+      <div class="doc-paper"><div class="doc-page">
+        ${docHeaderBlock(docDoctorBlockHTML())}
+        <div class="doc-title">病假證明</div>
+        <div class="doc-line"><div class="k">病人姓名</div><div>${escapeHtml(patientName)}</div></div>
+        <div class="doc-line"><div class="k">病歷號</div><div>${escapeHtml(p?.patientId || "—")}</div></div>
+        <div class="doc-line"><div class="k">文件日期</div><div>${formatDate(doc.date)}</div></div>
+        <div class="doc-line"><div class="k">診斷 / 病因</div><div>${escapeHtml(doc.diagnosis || "—")}</div></div>
+        <div class="doc-block">茲證明上述病人於 ${formatDate(doc.date)} 到本診所求診。根據臨床評估，建議由 ${formatDate(doc.sickFrom)} 至 ${formatDate(doc.sickTo)} 休息，共 ${escapeHtml(String(doc.sickDays || 1))} 日。</div>
+        ${doc.note ? `<div class="doc-block">備註：${escapeHtml(doc.note)}</div>` : ""}
+        <div class="doc-footer"><div class="doc-note">${escapeHtml(s.footerNote || "")}</div>${docSignBlockHTML()}</div>
+      </div></div>`;
+  }
+  if (doc.type === "attendance") {
+    return `
+      <div class="doc-paper"><div class="doc-page">
+        ${docHeaderBlock(docDoctorBlockHTML())}
+        <div class="doc-title">到診證明</div>
+        <div class="doc-line"><div class="k">病人姓名</div><div>${escapeHtml(patientName)}</div></div>
+        <div class="doc-line"><div class="k">病歷號</div><div>${escapeHtml(p?.patientId || "—")}</div></div>
+        <div class="doc-line"><div class="k">文件日期</div><div>${formatDate(doc.date)}</div></div>
+        <div class="doc-line"><div class="k">診斷 / 病因</div><div>${escapeHtml(doc.diagnosis || "—")}</div></div>
+        <div class="doc-block">茲證明上述病人已於 ${formatDate(doc.date)} ${escapeHtml(doc.attendSession || "")} 到本診所求診及接受診治。</div>
+        ${doc.note ? `<div class="doc-block">備註：${escapeHtml(doc.note)}</div>` : ""}
+        <div class="doc-footer"><div class="doc-note">${escapeHtml(s.footerNote || "")}</div>${docSignBlockHTML()}</div>
+      </div></div>`;
+  }
+  if (doc.type === "referral") {
+    return `
+      <div class="doc-paper"><div class="doc-page">
+        ${docHeaderBlock(docDoctorBlockHTML())}
+        <div class="doc-title">轉介信</div>
+        <div class="doc-line"><div class="k">收件人</div><div>${escapeHtml(doc.referralTo || "—")}</div></div>
+        <div class="doc-line"><div class="k">病人姓名</div><div>${escapeHtml(patientName)}</div></div>
+        <div class="doc-line"><div class="k">病歷號</div><div>${escapeHtml(p?.patientId || "—")}</div></div>
+        <div class="doc-line"><div class="k">日期</div><div>${formatDate(doc.date)}</div></div>
+        <div class="doc-block">${escapeHtml(doc.referralBody || "茲轉介上述病人作進一步評估及跟進。")}</div>
+        ${doc.diagnosis ? `<div class="doc-block">目前診斷 / 初步印象：${escapeHtml(doc.diagnosis)}</div>` : ""}
+        <div class="doc-footer"><div class="doc-note">${escapeHtml(s.footerNote || "")}</div>${docSignBlockHTML()}</div>
+      </div></div>`;
+  }
+  return `
+    <div class="doc-paper"><div class="doc-page">
+      ${docHeaderBlock(docDoctorBlockHTML())}
+      <div class="doc-title">處方</div>
+      <div class="doc-line"><div class="k">病人姓名</div><div>${escapeHtml(patientName)}</div></div>
+      <div class="doc-line"><div class="k">病歷號</div><div>${escapeHtml(p?.patientId || "—")}</div></div>
+      <div class="doc-line"><div class="k">日期</div><div>${formatDate(doc.date)}</div></div>
+      <div class="doc-line"><div class="k">藥物敏感</div><div>${escapeHtml(p?.allergy || "—")}</div></div>
+      <table class="doc-rx-table">
+        <thead><tr><th style="width:50px">#</th><th>藥物</th><th>用法</th><th style="width:120px">數量</th></tr></thead>
+        <tbody>
+          ${ rx.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:#64748b">未輸入處方內容</td></tr>` :
+            rx.map((r, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.usage)}</td><td>${escapeHtml(r.qty)}</td></tr>`).join("")
+          }
+        </tbody>
+      </table>
+      ${doc.note ? `<div class="doc-note" style="margin-top:14px">附註：${escapeHtml(doc.note)}</div>` : ""}
+      ${s.doctorRegNo ? `<div class="doc-note" style="margin-top:6px">醫生註冊編號：${escapeHtml(s.doctorRegNo)}</div>` : ""}
+      <div class="doc-footer"><div class="doc-note">${escapeHtml(s.footerNote || "")}</div>${docSignBlockHTML()}</div>
+    </div></div>`;
+}
+function saveCurrentDocument() {
+  const p = getPatientById(state.doc.patientId);
+  const item = { id: uid("DOC"), type: state.doc.type, date: state.doc.date, patientId: state.doc.patientId, patientName: p ? patientDisplayName(p) : "", title: docTypeLabel(state.doc.type), payload: JSON.parse(JSON.stringify(state.doc)), createdAt: new Date().toISOString() };
+  state.data.documents.unshift(item);
+  render();
+  toast("文件已儲存", "#059669");
+}
+function loadSavedDocument(id) {
+  const item = state.data.documents.find(x => x.id === id); if (!item) return;
+  state.doc = JSON.parse(JSON.stringify(item.payload || defaultDocForm()));
+  state.page = "documents";
+  render();
+  toast("已載入文件", "#2563eb");
+}
+function printCurrentDocument() {
+  const area = document.getElementById("printArea");
+  area.style.display = "block";
+  area.innerHTML = generateDocumentHTML(state.doc);
+  window.print();
+  setTimeout(() => area.style.display = "none", 300);
+}
+function printSavedDocument(id) {
+  const item = state.data.documents.find(x => x.id === id); if (!item) return;
+  const area = document.getElementById("printArea");
+  area.style.display = "block";
+  area.innerHTML = generateDocumentHTML(item.payload || defaultDocForm());
+  window.print();
+  setTimeout(() => area.style.display = "none", 300);
+}
+function resetDocForm() { state.doc = defaultDocForm(); render(); }
+function printReceipt(id){
+  const b = state.data.bills.find(x => x.id === id); if(!b) return toast("找不到收費記錄", "#e11d48");
+  const p = getPatientById(b.patientId);
+  const s = state.data.settings;
+  const balance = Math.max(0, Number(b.amount||0) - Number(b.paid||0));
+  const html = `
+    <div class="doc-paper"><div class="doc-page">
+      ${docHeaderBlock("<strong>正式收據</strong><br>Receipt")}
+      <div class="doc-title">收據</div>
+      <div class="doc-line"><div class="k">收據號碼</div><div>${escapeHtml(b.id)}</div></div>
+      <div class="doc-line"><div class="k">日期</div><div>${formatDate(b.date)}</div></div>
+      <div class="doc-line"><div class="k">病人姓名</div><div>${escapeHtml(b.patientName || patientDisplayName(p) || "—")}</div></div>
+      <div class="doc-line"><div class="k">病歷號</div><div>${escapeHtml(b.patientId || "—")}</div></div>
+      <div class="doc-line"><div class="k">項目</div><div>${escapeHtml(b.item || "—")}</div></div>
+      <div class="doc-line"><div class="k">金額</div><div>${formatMoney(b.amount)}</div></div>
+      <div class="doc-line"><div class="k">已收</div><div>${formatMoney(b.paid)}</div></div>
+      <div class="doc-line"><div class="k">付款方式</div><div>${escapeHtml(b.method || "—")}</div></div>
+      <div class="doc-line"><div class="k">餘額</div><div>${formatMoney(balance)}</div></div>
+      ${b.notes ? `<div class="doc-block">備註：${escapeHtml(b.notes)}</div>` : ""}
+      <div class="doc-footer"><div class="doc-note">${escapeHtml(s.receiptFooter || "")}</div>${docSignBlockHTML()}</div>
+    </div></div>`;
+  const area = document.getElementById("printArea");
+  area.style.display = "block";
+  area.innerHTML = html;
+  window.print();
+  setTimeout(() => area.style.display = "none", 300);
+}
+
+/* ---------- 病人 Drawer ---------- */
+function openPatientDrawer(patientId){
+  state.selectedPatientId = patientId;
+  state.drawerTab = "overview";
+  renderPatientDrawer();
+  document.getElementById("patientDrawer").classList.add("show");
+  document.getElementById("drawerBackdrop").classList.add("show");
+}
+function closePatientDrawer(){
+  document.getElementById("patientDrawer").classList.remove("show");
+  document.getElementById("drawerBackdrop").classList.remove("show");
+}
+function setDrawerTab(tab){ state.drawerTab = tab; renderPatientDrawer(); }
+function renderPatientDrawer(){
+  const p = state.data.patients.find(x => x.patientId === state.selectedPatientId);
+  if(!p){ document.getElementById("drawerBody").innerHTML = `<div class="empty">找不到病人</div>`; return; }
+  const appointments = state.data.appointments.filter(a => a.patientId === p.patientId).sort((a,b)=>new Date(b.dateTime)-new Date(a.dateTime));
+  const consultations = state.data.consultations.filter(c => c.patientId === p.patientId).sort((a,b)=>new Date(b.dateTime)-new Date(a.dateTime));
+  const bills = state.data.bills.filter(b => b.patientId === p.patientId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const followups = state.data.followups.filter(f => f.patientId === p.patientId).sort((a,b)=>new Date(a.dueAt)-new Date(b.dueAt));
+  document.getElementById("drawerTitle").textContent = patientDisplayName(p);
+  document.getElementById("drawerSubtitle").textContent = `${p.patientId} · 病人詳細`;
+  document.getElementById("drawerBody").innerHTML = `
+    <div class="detail-grid">
+      <div class="detail"><div class="k">病歷號</div><div class="v">${escapeHtml(p.patientId)}</div></div>
+      <div class="detail"><div class="k">性別 / 年齡</div><div class="v">${escapeHtml(p.gender || "—")} / ${escapeHtml(String(calculateAge(p.dob)))}</div></div>
+      <div class="detail"><div class="k">出生日期</div><div class="v">${formatDate(p.dob)}</div></div>
+      <div class="detail"><div class="k">HKID</div><div class="v">${escapeHtml(p.hkid || "—")}</div></div>
+      <div class="detail"><div class="k">電話</div><div class="v">${escapeHtml(p.phone || "—")}</div></div>
+      <div class="detail"><div class="k">地址</div><div class="v">${escapeHtml(p.address || "—")}</div></div>
+      <div class="detail"><div class="k">藥物敏感</div><div class="v">${escapeHtml(p.allergy || "—")}</div></div>
+      <div class="detail"><div class="k">長期病</div><div class="v">${escapeHtml(p.chronic || "—")}</div></div>
+      <div class="detail" style="grid-column:1/-1"><div class="k">提醒 / 備註</div><div class="v">${escapeHtml((p.alert ? p.alert + "；" : "") + (p.notes || "" ) || "—")}</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn ${state.drawerTab==='overview'?'active':''}" onclick="setDrawerTab('overview')">Overview</button>
+      <button class="tab-btn ${state.drawerTab==='appointments'?'active':''}" onclick="setDrawerTab('appointments')">預約</button>
+      <button class="tab-btn ${state.drawerTab==='consultations'?'active':''}" onclick="setDrawerTab('consultations')">診症</button>
+      <button class="tab-btn ${state.drawerTab==='billing'?'active':''}" onclick="setDrawerTab('billing')">收費</button>
+      <button class="tab-btn ${state.drawerTab==='followups'?'active':''}" onclick="setDrawerTab('followups')">Follow-up</button>
+    </div>
+    <div class="subtab ${state.drawerTab==='overview'?'active':''}">
+      <div class="list">
+        <div class="list-item"><div><div class="item-title">預約記錄</div><div class="item-sub">${appointments.length} 筆</div></div></div>
+        <div class="list-item"><div><div class="item-title">診症記錄</div><div class="item-sub">${consultations.length} 筆</div></div></div>
+        <div class="list-item"><div><div class="item-title">收費記錄</div><div class="item-sub">${bills.length} 筆</div></div></div>
+        <div class="list-item"><div><div class="item-title">Follow-up</div><div class="item-sub">${followups.length} 筆</div></div></div>
+      </div>
+    </div>
+    <div class="subtab ${state.drawerTab==='appointments'?'active':''}">
+      <div class="list">
+        ${ appointments.length===0 ? `<div class="empty">未有預約</div>` :
+          appointments.map(a => `
+            <div class="list-item">
+              <div><div class="item-title">${formatDateTime(a.dateTime)} · ${escapeHtml(a.complaint || a.type)}</div><div class="item-sub">${badge(a.type)} ${badge(a.status)}</div></div>
+              <button class="icon-btn" onclick="openEdit('appointment','${a.id}')">編輯</button>
+            </div>`).join("")
+        }
+      </div>
+    </div>
+    <div class="subtab ${state.drawerTab==='consultations'?'active':''}">
+      <div class="list">
+        ${ consultations.length===0 ? `<div class="empty">未有診症記錄</div>` :
+          consultations.map(c => `
+            <div class="list-item">
+              <div>
+                <div class="item-title">${formatDateTime(c.dateTime)} · ${escapeHtml(c.diagnosis || "—")}</div>
+                <div class="item-sub">主訴：${escapeHtml(c.complaint || "—")}</div>
+                <div class="item-sub">處方：${escapeHtml(c.rx || "—")}</div>
+              </div>
+              <div class="table-actions">
+                <button class="icon-btn" onclick="openEdit('consultation','${c.id}')">編輯</button>
+                <button class="icon-btn" onclick="prepareDocFromConsult('${c.id}')">文件</button>
+              </div>
+            </div>`).join("")
+        }
+      </div>
+    </div>
+    <div class="subtab ${state.drawerTab==='billing'?'active':''}">
+      <div class="list">
+        ${ bills.length===0 ? `<div class="empty">未有收費記錄</div>` :
+          bills.map(b => `
+            <div class="list-item">
+              <div>
+                <div class="item-title">${escapeHtml(b.id)} · ${escapeHtml(b.item)}</div>
+                <div class="item-sub">${formatDate(b.date)} · 金額 ${formatMoney(b.amount)} · 已收 ${formatMoney(b.paid)}</div>
+                <div style="margin-top:8px">${badge(b.status)}</div>
+              </div>
+              <div class="table-actions">
+                <button class="icon-btn" onclick="printReceipt('${b.id}')">收據</button>
+                <button class="icon-btn" onclick="openEdit('bill','${b.id}')">編輯</button>
+              </div>
+            </div>`).join("")
+        }
+      </div>
+    </div>
+    <div class="subtab ${state.drawerTab==='followups'?'active':''}">
+      <div class="list">
+        ${ followups.length===0 ? `<div class="empty">未有 Follow-up</div>` :
+          followups.map(f => `
+            <div class="list-item">
+              <div>
+                <div class="item-title">${formatDateTime(f.dueAt)} · ${escapeHtml(f.subject)}</div>
+                <div class="item-sub">${escapeHtml(f.category)} · ${escapeHtml(f.note || "—")}</div>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${badge(f.priority)} ${badge(f.status)}</div>
+              </div>
+              <div class="table-actions">
+                <button class="icon-btn" onclick="openWhatsAppFollowup('${f.id}')">WhatsApp</button>
+                <button class="icon-btn" onclick="openEdit('followup','${f.id}')">編輯</button>
+              </div>
+            </div>`).join("")
+        }
+      </div>
+    </div>
+  `;
+}
+function openWhatsAppFollowup(id){
+  const f = state.data.followups.find(x => x.id === id); if(!f) return;
+  const p = getPatientById(f.patientId);
+  if(!p || !p.phone) return toast("病人未有電話號碼", "#d97706");
+  const phone = String(p.phone).replace(/\D/g,"");
+  const msg = encodeURIComponent(`你好，${p.nameZh || p.nameEn || ""}，${f.subject || "跟進"}。${f.note || ""}`);
+  window.open(`https://wa.me/852${phone}?text=${msg}`, "_blank");
+}
+
+/* ---------- Settings 儲存 ---------- */
+function updateSetting(key, value) { state.data.settings[key] = value; }
+function saveSettings() { saveStorage(); render(); toast("設定已儲存", "#059669"); }
+
+/* ---------- 匯入 / 匯出 / Demo / 清除 ---------- */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state.data, null, 2)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "solo-gp-clinic-data.json"; a.click();
+  URL.revokeObjectURL(url);
+  toast("已匯出 JSON", "#2563eb");
+}
+function importJSON(event) {
+  const file = event.target.files && event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      state.data = normalizeData(parsed);
+      render();
+      toast("已匯入 JSON", "#059669");
+    } catch (err) { toast("JSON 格式錯誤", "#e11d48"); }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+function loadDemo() { state.data = seedData(); state.doc = defaultDocForm(); render(); toast("已載入示範資料", "#2563eb"); }
+function resetAll() {
+  if (!confirm("確定清除全部資料？（本機同雲端都會清空，此動作不能復原）")) return;
+  state.data = emptyData();
+  state.doc = defaultDocForm();
+  localStorage.removeItem(STORAGE_KEY);
+  render();
+  toast("全部資料已清除", "#e11d48");
+}
+
+/* ---------- 啟動 ---------- */
+startApp();
+</script>
+</body>
+</html>
