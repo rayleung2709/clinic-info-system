@@ -662,8 +662,6 @@ function appointmentPrimaryAction(a){
 }
 function checkInAppointment(id){ state.data.appointments=state.data.appointments.map(a=>a.id===id?{...a,status:'Checked-in'}:a); render(); toast('Patient checked in','#059669'); }
 // ===== END OF PART 1 =====
-
-  <script>
 // ===== CONTINUED FROM PART 1 =====
 
 // Encounter draft local persistence (resilience against refresh)
@@ -1074,9 +1072,6 @@ function printReceipt(id){
   window.print(); setTimeout(()=>area.style.display='none',300);
 }
 // ===== END OF PART 2 =====
-</script>
-
-  <script>
 // ===== CONTINUED FROM PART 2 =====
 
 // Patients page
