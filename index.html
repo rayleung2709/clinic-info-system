@@ -1453,14 +1453,6 @@ function renderSettingsPage(){
         </div>
         <p class="hint" style="margin-top:10px">Recommended: transparent PNG. Images are stored as part of your account settings (text-based, no separate file storage needed).</p>
       </div></div>
-      <div class="card"><div class="card-head"><div><h3>Patient ID Numbering</h3><p>Controls how new Patient IDs are generated — synced with your account</p></div></div>
-      <div class="card-body">
-        <div class="form-grid">
-          <div class="field"><label>Clinic Code Prefix</label><input id="setClinicCode" value="${escapeAttr(s.clinicCode||'GP')}" maxlength="6" oninput="updateSettingSilent('clinicCode',this.value.toUpperCase())" onblur="render()"></div>
-          <div class="field span-2"><label>Next Patient Number</label><input id="setPatientCounter" type="number" min="10000" value="${escapeAttr(s.patientIdCounter||10000)}" oninput="updateSettingSilent('patientIdCounter', parseInt(this.value)||10000)" onblur="render()"></div>
-        </div>
-        <p class="hint" style="margin-top:10px">Example next ID: <strong>${escapeHtml(formatPatientDisplayId(s.clinicCode, s.patientIdCounter||10000))}</strong>. Each ID ends with a check digit that automatically catches typos when staff enter it manually.</p>
-      </div></div>
       <div class="card"><div class="card-head"><div><h3>Account</h3><p>Signed in via Supabase</p></div></div>
       <div class="card-body"><div class="list">
         <div class="list-item"><div><div class="item-title">Signed in as</div><div class="item-sub">${escapeHtml(currentUser?currentUser.email:'—')}</div></div></div>
