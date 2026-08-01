@@ -1573,9 +1573,7 @@ if(state.recordType==='patient') return `
         <p class="hint">Groups this patient with a family member for quick front-desk lookup (e.g. a parent booking for their children). Medical records remain completely separate.</p>
       </div>
     </div>`;
-  if(state.recordType==='appointment') return `
-    <div class="form-grid">
-      if(state.recordType==='consultation'){
+  if(state.recordType==='consultation'){
     const c=f; const vit=c.vitals||{};
     return `
     <div class="form-grid">
