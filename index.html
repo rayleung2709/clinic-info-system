@@ -255,6 +255,7 @@ th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;
         <button class="btn primary" onclick="openCreate('appointment')">+ New Appointment</button>
       </div>
     </div>
+    <div id="activeEncounterBanner"></div>
     <section id="pageContent"></section>
   </main>
 </div>
@@ -463,15 +464,16 @@ function autoBillCode(){ return 'INV-'+new Date().getFullYear().toString().slice
 function billItemsTotal(items){ return (items||[]).reduce((s,it)=>s+(parseFloat(it.amount)||0),0); }
 function billStatusFromTotals(total,paid){ total=Number(total||0); paid=Number(paid||0); if(paid<=0) return 'Unpaid'; if(paid>=total) return 'Paid'; return 'Partially Paid'; }
 function docTypeLabel(type){ return {sick:'Medical Certificate',attendance:'Attendance Certificate',referral:'Referral Letter',prescription:'Prescription'}[type]||type; }
-function recordTypeLabel(type){ return {patient:'Patient',appointment:'Appointment',bill:'Invoice',medication:'Medication',followup:'Follow-up'}[type]||type; }
-
+function recordTypeLabel(type){ return {patient:'Patient',appointment:'Appointment',bill:'Invoice',medication:'Medication',followup:'Follow-up',consultation:'Consultation'}[type]||type; }
 function withFocusPreserved(containerId, updateFn){
   const container=document.getElementById(containerId);
   let info=null;
   if(container){
     const active=document.activeElement;
     if(active && container.contains(active) && active.id){
-      info={ id:active.id, start:(typeof active.selectionStart==='number')?active.selectionStart:null, end:(typeof active.selectionEnd==='number')?active.selectionEnd:null };
+      let start=null, end=null;
+      try{ if(typeof active.selectionStart==='number'){ start=active.selectionStart; end=active.selectionEnd; } }catch(e){}
+      info={ id:active.id, start, end };
     }
   }
   updateFn();
@@ -614,9 +616,26 @@ function removeSignature(){ state.data.settings.doctorSignature=''; render(); to
 // Master render / nav / topbar
 function render(){
   renderBrand(); renderNav(); renderMiniStats(); updateTopbar(); updateTopbarActionsVisibility();
+  renderActiveEncounterBanner();
   renderPage();
   saveStorage();
 }
+function renderActiveEncounterBanner(){
+  const el=document.getElementById('activeEncounterBanner');
+  if(!el) return;
+  if(state.encounter && state.page!=='encounter'){
+    const p=getPatientById(state.encounter.patientId);
+    el.style.display='block';
+    el.innerHTML=`<div class="alert-banner" style="justify-content:space-between;background:#dbeafe;border-color:#93c5fd;color:#1e3a8a;cursor:pointer" onclick="resumeActiveEncounter()">
+      <span>🩺 Visit in progress: <strong>${escapeHtml(p?patientDisplayName(p):'Unknown patient')}</strong> — click to resume, your notes are safely kept.</span>
+      <button class="btn primary" style="padding:7px 14px" onclick="event.stopPropagation();resumeActiveEncounter()">Resume Visit</button>
+    </div>`;
+  } else {
+    el.style.display='none';
+    el.innerHTML='';
+  }
+}
+function resumeActiveEncounter(){ if(state.encounter){ state.page='encounter'; render(); } }  
 function renderBrand(){
   const s=state.data.settings;
   document.getElementById('brandClinicName').textContent=s.clinicName||'My Clinic';
@@ -864,15 +883,16 @@ function renderEncounterRxTab(p){
 }
 function renderRxRow(it, idx){
   return `<div class="editor-row">
-    <input id="rxName_${it.id}" value="${escapeAttr(it.name)}" placeholder="Drug name" list="formularyDatalist" oninput="updateRxItem(${idx},'name',this.value)">
-    <input id="rxInstr_${it.id}" value="${escapeAttr(it.instructions)}" placeholder="Dosage & instructions e.g. 1 tab TDS x 3 days" oninput="updateRxItem(${idx},'instructions',this.value)">
-    <input id="rxQty_${it.id}" value="${escapeAttr(it.quantity)}" placeholder="Qty" oninput="updateRxItem(${idx},'quantity',this.value)">
-    <input id="rxPrice_${it.id}" value="${escapeAttr(it.price)}" placeholder="Price" type="number" oninput="updateRxItem(${idx},'price',this.value)">
+    <input id="rxName_${it.id}" value="${escapeAttr(it.name)}" placeholder="Drug name" list="formularyDatalist" oninput="updateRxItemSilent(${idx},'name',this.value)">
+    <input id="rxInstr_${it.id}" value="${escapeAttr(it.instructions)}" placeholder="Dosage & instructions e.g. 1 tab TDS x 3 days" oninput="updateRxItemSilent(${idx},'instructions',this.value)">
+    <input id="rxQty_${it.id}" value="${escapeAttr(it.quantity)}" placeholder="Qty" oninput="updateRxItemSilent(${idx},'quantity',this.value)">
+    <input id="rxPrice_${it.id}" value="${escapeAttr(it.price)}" placeholder="Price" type="text" inputmode="decimal" oninput="updateRxItemSilent(${idx},'price',this.value)">
     <button class="rm-btn" onclick="removeRxItem(${idx})" title="Remove">&times;</button>
   </div>`;
 }
 function addBlankRxItem(){ state.encounter.rxItems.push({id:uid('RX'),name:'',instructions:'',quantity:'',price:''}); rerenderEncounter(); }
 function updateRxItem(idx,key,value){ state.encounter.rxItems[idx][key]=value; rerenderEncounter(); }
+function updateRxItemSilent(idx,key,value){ state.encounter.rxItems[idx][key]=value; persistEncounterDraftLocal(); }
 function removeRxItem(idx){ state.encounter.rxItems.splice(idx,1); rerenderEncounter(); }
 function openFormularyPicker(){
   state.recordType='formulary-picker';
@@ -909,7 +929,7 @@ function renderEncounterDocsTab(p){
         ${doc.type==='sick'?`
           <div class="field"><label>Leave From</label><input type="date" value="${escapeAttr(doc.sickFrom)}" onchange="updateEncounterDoc('sickFrom',this.value)"></div>
           <div class="field"><label>Leave To</label><input type="date" value="${escapeAttr(doc.sickTo)}" onchange="updateEncounterDoc('sickTo',this.value)"></div>
-          <div class="field"><label>No. of Days</label><input type="number" id="docSickDays" value="${escapeAttr(doc.sickDays)}" oninput="updateEncounterDoc('sickDays',this.value)"></div>
+          <div class="field"><label>No. of Days</label><input type="text" inputmode="numeric" id="docSickDays" value="${escapeAttr(doc.sickDays)}" oninput="updateEncounterDocSilent('sickDays',this.value)" onblur="rerenderEncounter()"></div>
         `:''}
         ${doc.type==='attendance'?`<div class="field"><label>Session</label><select onchange="updateEncounterDoc('attendSession',this.value)">${['AM','PM'].map(v=>`<option ${doc.attendSession===v?'selected':''}>${v}</option>`).join('')}</select></div>`:''}
         ${doc.type==='referral'?`
@@ -937,6 +957,7 @@ function updateEncounterDoc(key,value){
   if(state.encounter.doc.type==='sick' && (key==='sickFrom'||key==='sickTo')) recalcEncounterSickDays();
   rerenderEncounter();
 }
+function updateEncounterDocSilent(key,value){ state.encounter.doc[key]=value; persistEncounterDraftLocal(); }
 function recalcEncounterSickDays(){
   const d=state.encounter.doc; if(!d.sickFrom||!d.sickTo) return;
   const from=new Date(d.sickFrom+'T00:00:00'), to=new Date(d.sickTo+'T00:00:00');
@@ -953,7 +974,6 @@ function printEncounterDocPreview(){
   area.innerHTML=generateDocumentHTML(state.encounter.doc,p);
   window.print(); setTimeout(()=>area.style.display='none',300);
 }
-
 function renderEncounterBillingTab(p){
   const items=state.encounter.billItems; const total=billItemsTotal(items);
   return `
@@ -961,15 +981,15 @@ function renderEncounterBillingTab(p){
   <div class="card-body">
     <div class="line-items" id="billLineItems">
       ${items.map((it,idx)=>`<div class="bill-editor-row">
-        <input id="billDesc_${it.id}" value="${escapeAttr(it.description)}" placeholder="Description" oninput="updateBillItem(${idx},'description',this.value)">
-        <input id="billAmount_${it.id}" value="${escapeAttr(it.amount)}" type="number" placeholder="Amount" oninput="updateBillItem(${idx},'amount',this.value)">
+        <input id="billDesc_${it.id}" value="${escapeAttr(it.description)}" placeholder="Description" oninput="updateBillItemSilent(${idx},'description',this.value)">
+        <input id="billAmount_${it.id}" value="${escapeAttr(it.amount)}" type="text" inputmode="decimal" placeholder="Amount" oninput="updateBillItemSilent(${idx},'amount',this.value)" onblur="rerenderEncounter()">
         <button class="rm-btn" onclick="removeBillItem(${idx})">&times;</button>
       </div>`).join('')}
     </div>
     <div class="actions"><button class="btn default" onclick="addBillItem()">+ Add Line Item</button><button class="btn soft" onclick="addRxItemsToBill()">+ Copy Prescription as Charges</button></div>
     <div class="editor-total"><span>Total</span><span>${formatMoney(total)}</span></div>
     <div class="form-grid" style="margin-top:14px">
-      <div class="field"><label>Amount Paid</label><input id="amountPaidInput" type="number" value="${escapeAttr(state.encounter.amountPaid)}" oninput="updateEncounterBillingField('amountPaid',this.value)"></div>
+      <div class="field"><label>Amount Paid</label><input id="amountPaidInput" type="text" inputmode="decimal" value="${escapeAttr(state.encounter.amountPaid)}" oninput="updateEncounterBillingFieldSilent('amountPaid',this.value)" onblur="rerenderEncounter()"></div>
       <div class="field"><label>Payment Method</label><select onchange="updateEncounterBillingField('paymentMethod',this.value)">${['Cash','Credit Card','FPS','Octopus','Bank Transfer','Other'].map(v=>`<option ${state.encounter.paymentMethod===v?'selected':''}>${v}</option>`).join('')}</select></div>
       <div class="field"><label>Balance Due</label><input value="${formatMoney(Math.max(0,total-Number(state.encounter.amountPaid||0)))}" readonly style="background:#f8fafc;font-weight:800"></div>
     </div>
@@ -982,8 +1002,10 @@ function renderEncounterBillingTab(p){
 }
 function addBillItem(){ state.encounter.billItems.push({id:uid('BI'),description:'',amount:''}); rerenderEncounter(); }
 function updateBillItem(idx,key,value){ state.encounter.billItems[idx][key]=value; rerenderEncounter(); }
+function updateBillItemSilent(idx,key,value){ state.encounter.billItems[idx][key]=value; persistEncounterDraftLocal(); }
 function removeBillItem(idx){ state.encounter.billItems.splice(idx,1); rerenderEncounter(); }
 function updateEncounterBillingField(key,value){ state.encounter[key]=value; rerenderEncounter(); }
+function updateEncounterBillingFieldSilent(key,value){ state.encounter[key]=value; persistEncounterDraftLocal(); }
 function addRxItemsToBill(){
   state.encounter.rxItems.forEach(r=>{ if(r.name) state.encounter.billItems.push({id:uid('BI'), description:r.name+(r.quantity?(' x '+r.quantity):''), amount:r.price||''}); });
   rerenderEncounter(); toast('Prescription items copied to invoice','#059669');
@@ -1241,7 +1263,7 @@ function renderConsultationsPage(){
         <td>BP ${escapeHtml(c.vitals?.bp||'—')} · P ${escapeHtml(c.vitals?.pulse||'—')}<br>T ${escapeHtml(c.vitals?.temp||'—')} · SpO2 ${escapeHtml(c.vitals?.spo2||'—')}</td>
         <td>${escapeHtml(c.diagnosis||'—')}</td>
         <td>${(c.rxItems||[]).map(r=>escapeHtml(r.name)).join(', ')||'—'}</td>
-        <td><div class="table-actions"><button class="icon-btn" onclick="openPatientProfile('${c.patientId}')">Patient</button></div></td>
+        <td><div class="table-actions"><button class="icon-btn" onclick="openConsultationView('${c.id}')">View / Edit</button><button class="icon-btn" onclick="openPatientProfile('${c.patientId}')">Patient</button></div></td>
       </tr>`).join('')}</tbody></table></div>
   </div></div>`;
 }
@@ -1490,17 +1512,25 @@ function openEdit(type,id){
   if(type==='appointment') item=state.data.appointments.find(x=>x.id===id);
   if(type==='medication') item=state.data.medications.find(x=>x.id===id);
   if(type==='followup') item=state.data.followups.find(x=>x.id===id);
+  if(type==='consultation') item=state.data.consultations.find(x=>x.id===id);
   if(type==='bill'){
     const found=state.data.bills.find(x=>x.id===id);
     if(found){ item=JSON.parse(JSON.stringify(found)); item.description=(item.items||[]).map(i=>i.description).join(', '); item.amount=billItemsTotal(item.items); }
   }
   state.form=JSON.parse(JSON.stringify(item||{}));
+  if(type==='consultation' && !state.form.vitals) state.form.vitals={bp:'',pulse:'',temp:'',spo2:'',weight:''};
+  if(type==='consultation' && !state.form.rxItems) state.form.rxItems=[];
   renderForm();
   document.getElementById('modalTitle').textContent='Edit '+recordTypeLabel(type);
-  document.getElementById('modalSubtitle').textContent='Update the details below';
+  document.getElementById('modalSubtitle').textContent = type==='consultation' ? (formatDateTime(item?.dateTime)+' · '+(item?.patientName||'')) : 'Update the details below';
   document.getElementById('recordModal').classList.add('show');
   document.getElementById('modalBackdrop').classList.add('show');
 }
+function openConsultationView(id){ openEdit('consultation', id); }
+function setConsultFormVital(key,value){ if(!state.form.vitals) state.form.vitals={}; state.form.vitals[key]=value; }
+function addConsultFormRxItem(){ if(!state.form.rxItems) state.form.rxItems=[]; state.form.rxItems.push({id:uid('RX'),name:'',instructions:'',quantity:'',price:''}); renderForm(); }
+function updateConsultFormRxItemSilent(idx,key,value){ state.form.rxItems[idx][key]=value; }
+function removeConsultFormRxItem(idx){ state.form.rxItems.splice(idx,1); renderForm(); } 
 function closeModal(){ document.getElementById('recordModal').classList.remove('show'); document.getElementById('modalBackdrop').classList.remove('show'); state.afterPatientSaveAction=null; }
 function resetForm(type){
   if(type==='patient') state.form={patientId:autoPatientCode(),fullName:'',chineseName:'',gender:'Male',dob:'',hkid:'',phone:'',email:'',address:'',allergies:'',chronicConditions:'',alertNote:'',notes:''};
@@ -1543,6 +1573,39 @@ if(state.recordType==='patient') return `
         <p class="hint">Groups this patient with a family member for quick front-desk lookup (e.g. a parent booking for their children). Medical records remain completely separate.</p>
       </div>
     </div>`;
+  if(state.recordType==='appointment') return `
+    <div class="form-grid">
+      if(state.recordType==='consultation'){
+    const c=f; const vit=c.vitals||{};
+    return `
+    <div class="form-grid">
+      <div class="field"><label>Date &amp; Time</label><input type="datetime-local" value="${escapeAttr(c.dateTime||'')}" onchange="setFormValue('dateTime',this.value)"></div>
+      <div class="field span-2"><label>Chief Complaint</label><input value="${escapeAttr(c.chiefComplaint||'')}" oninput="setFormValue('chiefComplaint',this.value)"></div>
+      <div class="field"><label>BP (mmHg)</label><input value="${escapeAttr(vit.bp||'')}" oninput="setConsultFormVital('bp',this.value)"></div>
+      <div class="field"><label>Pulse (bpm)</label><input value="${escapeAttr(vit.pulse||'')}" oninput="setConsultFormVital('pulse',this.value)"></div>
+      <div class="field"><label>Temp (°C)</label><input value="${escapeAttr(vit.temp||'')}" oninput="setConsultFormVital('temp',this.value)"></div>
+      <div class="field"><label>SpO2 (%)</label><input value="${escapeAttr(vit.spo2||'')}" oninput="setConsultFormVital('spo2',this.value)"></div>
+      <div class="field"><label>Weight (kg)</label><input value="${escapeAttr(vit.weight||'')}" oninput="setConsultFormVital('weight',this.value)"></div>
+      <div class="field span-3"><label>History</label><textarea rows="2" oninput="setFormValue('history',this.value)">${escapeHtml(c.history||'')}</textarea></div>
+      <div class="field span-3"><label>Examination Findings</label><textarea rows="2" oninput="setFormValue('examination',this.value)">${escapeHtml(c.examination||'')}</textarea></div>
+      <div class="field span-3"><label>Diagnosis / Assessment</label><textarea rows="2" oninput="setFormValue('diagnosis',this.value)">${escapeHtml(c.diagnosis||'')}</textarea></div>
+      <div class="field span-3"><label>Management Plan</label><textarea rows="2" oninput="setFormValue('plan',this.value)">${escapeHtml(c.plan||'')}</textarea></div>
+      <div class="field span-3"><label>Additional Notes</label><textarea rows="2" oninput="setFormValue('notes',this.value)">${escapeHtml(c.notes||'')}</textarea></div>
+      <div class="field span-3">
+        <label>Prescription</label>
+        <div class="line-items">
+          ${(c.rxItems||[]).map((it,idx)=>`<div class="editor-row">
+            <input value="${escapeAttr(it.name)}" placeholder="Drug name" oninput="updateConsultFormRxItemSilent(${idx},'name',this.value)">
+            <input value="${escapeAttr(it.instructions)}" placeholder="Instructions" oninput="updateConsultFormRxItemSilent(${idx},'instructions',this.value)">
+            <input value="${escapeAttr(it.quantity)}" placeholder="Qty" oninput="updateConsultFormRxItemSilent(${idx},'quantity',this.value)">
+            <input value="${escapeAttr(it.price)}" placeholder="Price" oninput="updateConsultFormRxItemSilent(${idx},'price',this.value)">
+            <button type="button" class="rm-btn" onclick="removeConsultFormRxItem(${idx})">&times;</button>
+          </div>`).join('') || '<div class="empty">No medications recorded</div>'}
+        </div>
+        <button type="button" class="btn default" style="margin-top:8px" onclick="addConsultFormRxItem()">+ Add Medication Line</button>
+      </div>
+    </div>`;
+  }
   if(state.recordType==='appointment') return `
     <div class="form-grid">
       <div class="field span-2"><label>Patient</label><select onchange="selectPatientForForm(this.value)"><option value="">— Select patient —</option>${state.data.patients.map(p=>`<option value="${escapeAttr(p.patientId)}" ${f.patientId===p.patientId?'selected':''}>${escapeHtml(p.patientId)} · ${escapeHtml(patientDisplayName(p))}</option>`).join('')}</select></div>
@@ -1603,7 +1666,11 @@ function saveRecord(){
   const type=state.recordType;
   if(type==='formulary-picker'){ closeModal(); return; }
   const f=JSON.parse(JSON.stringify(state.form));
-  if(type==='patient'){
+  if(type==='consultation'){
+    state.data.consultations=state.data.consultations.map(x=>x.id===state.editId?{...x, ...f}:x);
+    closeModal(); render(); toast('Consultation updated','#059669'); return;
+  }
+  if(type==='patient'){  
     if(!state.editId){
       const dups=findPossibleDuplicatePatients(f);
       if(dups.length){
@@ -1719,7 +1786,7 @@ function renderPatientProfile(){
       <div class="list-item"><div><div class="item-title">Follow-ups</div><div class="item-sub">${fups.length} on record</div></div></div>
     </div></div>
     <div class="subtab ${state.drawerTab==='appointments'?'active':''}"><div class="list">${appts.length===0?'<div class="empty">No appointments</div>':appts.map(a=>`<div class="list-item"><div><div class="item-title">${formatDateTime(a.dateTime)} · ${escapeHtml(a.reason||a.visitType)}</div><div class="item-sub">${badge(a.visitType)} ${badge(a.status)}</div></div></div>`).join('')}</div></div>
-    <div class="subtab ${state.drawerTab==='consultations'?'active':''}"><div class="list">${consults.length===0?'<div class="empty">No consultations</div>':consults.map(c=>`<div class="list-item"><div><div class="item-title">${formatDateTime(c.dateTime)} · ${escapeHtml(c.diagnosis||'—')}</div><div class="item-sub">Complaint: ${escapeHtml(c.chiefComplaint||'—')}</div><div class="item-sub">Rx: ${(c.rxItems||[]).map(r=>escapeHtml(r.name)).join(', ')||'—'}</div></div></div>`).join('')}</div></div>
+    <div class="subtab ${state.drawerTab==='consultations'?'active':''}"><div class="list">${consults.length===0?'<div class="empty">No consultations</div>':consults.map(c=>`<div class="list-item"><div><div class="item-title">${formatDateTime(c.dateTime)} · ${escapeHtml(c.diagnosis||'—')}</div><div class="item-sub">Complaint: ${escapeHtml(c.chiefComplaint||'—')}</div><div class="item-sub">Rx: ${(c.rxItems||[]).map(r=>escapeHtml(r.name)).join(', ')||'—'}</div></div><button class="icon-btn" onclick="closePatientProfile();openConsultationView('${c.id}')">View / Edit</button></div>`).join('')}</div></div>
     <div class="subtab ${state.drawerTab==='billing'?'active':''}"><div class="list">${bills.length===0?'<div class="empty">No invoices</div>':bills.map(b=>`<div class="list-item"><div><div class="item-title">${escapeHtml(b.id)}</div><div class="item-sub">${formatDate(b.date)} · Total ${formatMoney(billItemsTotal(b.items))} · Paid ${formatMoney(b.amountPaid)}</div><div style="margin-top:6px">${badge(b.status)}</div></div><button class="icon-btn" onclick="printReceipt('${b.id}')">Receipt</button></div>`).join('')}</div></div>
     <div class="subtab ${state.drawerTab==='followups'?'active':''}"><div class="list">${fups.length===0?'<div class="empty">No follow-ups</div>':fups.map(f=>`<div class="list-item"><div><div class="item-title">${formatDateTime(f.dueAt)} · ${escapeHtml(f.subject)}</div><div class="item-sub">${escapeHtml(f.category)}</div></div>${badge(f.status)}</div>`).join('')}</div></div>
   `;
