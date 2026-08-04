@@ -1679,7 +1679,6 @@ function saveRecord(){
     }
 if(!f.patientId||!f.fullName) return toast('Please enter Patient ID and full name','#d97706');
     const dupe = checkDuplicateHkid(f.hkid, state.editId);
-    const dupe = checkDuplicateHkid(f.hkid, state.editId);
     if(dupe){
       const proceed = confirm(`Warning: HKID ${f.hkid} is already registered under ${patientDisplayName(dupe)} (${dupe.patientId}). This looks like a duplicate patient. Save anyway?`);
       if(!proceed) return;
